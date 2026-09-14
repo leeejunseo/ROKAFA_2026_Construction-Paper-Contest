@@ -314,8 +314,12 @@ def sec_training(esdir: str) -> str:
                          최대적합도=float(h["fit_max"].max()),
                          소요시간_분=float(h["elapsed"].iloc[-1] / 60)))
     return ("### 표 M2. 학습 실행 요약 (ES)\n\n" + md_table(pd.DataFrame(rows), {"소요시간_분": "{:.1f}"}) +
-            "\n\n하이퍼파라미터는 train_es.py 기본값(pop 48, σ 0.08, lr 0.03, 세대당 4교전, "
-            "alpha 커리큘럼 0.15→0.9)과 실행 명령을 README 에서 확인하십시오.\n")
+            "\n\n초기·최종 적합도는 해당 세대에서 현재 정책 θ 를 같은 시드 8교전으로 평가한 값"
+            "(최종은 마지막 5세대 평균)이며, 세대마다 시드가 바뀌므로 잡음이 큽니다. "
+            "학습이 됐는지는 이 표가 아니라 표 3 의 예산별 점수로 판단하십시오. "
+            "실행 설정: BT-v2 행동 복제 초기화, OpenAI-ES 변형(미러 샘플링·순위 정규화·"
+            "갱신 수용 검사), pop 32, σ 0.05, lr 0.01, 후보당 8교전(α 격자 {0.25,0.5,0.75,1.0} × 2), "
+            "상대 BT-v1/v2 교대. 명령은 README 를 보십시오.\n")
 
 
 def build(outdir: str, esdir: str, out_path: str) -> str:

@@ -160,6 +160,78 @@
       "budget": 100
     },
     {
+      "name": "HYB-s3-b100-a0.25",
+      "kind": "hybrid",
+      "alpha": 0.25,
+      "ckpt": "results/es/ckpt_seed3_gen00100.npz",
+      "train_seed": 3,
+      "bt_version": 2,
+      "budget": 100
+    },
+    {
+      "name": "HYB-s3-b100-a0.50",
+      "kind": "hybrid",
+      "alpha": 0.5,
+      "ckpt": "results/es/ckpt_seed3_gen00100.npz",
+      "train_seed": 3,
+      "bt_version": 2,
+      "budget": 100
+    },
+    {
+      "name": "HYB-s3-b100-a0.75",
+      "kind": "hybrid",
+      "alpha": 0.75,
+      "ckpt": "results/es/ckpt_seed3_gen00100.npz",
+      "train_seed": 3,
+      "bt_version": 2,
+      "budget": 100
+    },
+    {
+      "name": "RL-s3-b100-a1.00",
+      "kind": "rl",
+      "alpha": 1.0,
+      "ckpt": "results/es/ckpt_seed3_gen00100.npz",
+      "train_seed": 3,
+      "bt_version": 2,
+      "budget": 100
+    },
+    {
+      "name": "HYB-s4-b100-a0.25",
+      "kind": "hybrid",
+      "alpha": 0.25,
+      "ckpt": "results/es/ckpt_seed4_gen00100.npz",
+      "train_seed": 4,
+      "bt_version": 2,
+      "budget": 100
+    },
+    {
+      "name": "HYB-s4-b100-a0.50",
+      "kind": "hybrid",
+      "alpha": 0.5,
+      "ckpt": "results/es/ckpt_seed4_gen00100.npz",
+      "train_seed": 4,
+      "bt_version": 2,
+      "budget": 100
+    },
+    {
+      "name": "HYB-s4-b100-a0.75",
+      "kind": "hybrid",
+      "alpha": 0.75,
+      "ckpt": "results/es/ckpt_seed4_gen00100.npz",
+      "train_seed": 4,
+      "bt_version": 2,
+      "budget": 100
+    },
+    {
+      "name": "RL-s4-b100-a1.00",
+      "kind": "rl",
+      "alpha": 1.0,
+      "ckpt": "results/es/ckpt_seed4_gen00100.npz",
+      "train_seed": 4,
+      "bt_version": 2,
+      "budget": 100
+    },
+    {
       "name": "HYB-s0-b200-a0.25",
       "kind": "hybrid",
       "alpha": 0.25,
@@ -268,6 +340,78 @@
       "budget": 200
     },
     {
+      "name": "HYB-s3-b200-a0.25",
+      "kind": "hybrid",
+      "alpha": 0.25,
+      "ckpt": "results/es/ckpt_seed3_gen00200.npz",
+      "train_seed": 3,
+      "bt_version": 2,
+      "budget": 200
+    },
+    {
+      "name": "HYB-s3-b200-a0.50",
+      "kind": "hybrid",
+      "alpha": 0.5,
+      "ckpt": "results/es/ckpt_seed3_gen00200.npz",
+      "train_seed": 3,
+      "bt_version": 2,
+      "budget": 200
+    },
+    {
+      "name": "HYB-s3-b200-a0.75",
+      "kind": "hybrid",
+      "alpha": 0.75,
+      "ckpt": "results/es/ckpt_seed3_gen00200.npz",
+      "train_seed": 3,
+      "bt_version": 2,
+      "budget": 200
+    },
+    {
+      "name": "RL-s3-b200-a1.00",
+      "kind": "rl",
+      "alpha": 1.0,
+      "ckpt": "results/es/ckpt_seed3_gen00200.npz",
+      "train_seed": 3,
+      "bt_version": 2,
+      "budget": 200
+    },
+    {
+      "name": "HYB-s4-b200-a0.25",
+      "kind": "hybrid",
+      "alpha": 0.25,
+      "ckpt": "results/es/ckpt_seed4_gen00200.npz",
+      "train_seed": 4,
+      "bt_version": 2,
+      "budget": 200
+    },
+    {
+      "name": "HYB-s4-b200-a0.50",
+      "kind": "hybrid",
+      "alpha": 0.5,
+      "ckpt": "results/es/ckpt_seed4_gen00200.npz",
+      "train_seed": 4,
+      "bt_version": 2,
+      "budget": 200
+    },
+    {
+      "name": "HYB-s4-b200-a0.75",
+      "kind": "hybrid",
+      "alpha": 0.75,
+      "ckpt": "results/es/ckpt_seed4_gen00200.npz",
+      "train_seed": 4,
+      "bt_version": 2,
+      "budget": 200
+    },
+    {
+      "name": "RL-s4-b200-a1.00",
+      "kind": "rl",
+      "alpha": 1.0,
+      "ckpt": "results/es/ckpt_seed4_gen00200.npz",
+      "train_seed": 4,
+      "bt_version": 2,
+      "budget": 200
+    },
+    {
       "name": "HYB-s0-b300-a0.25",
       "kind": "hybrid",
       "alpha": 0.25,
@@ -372,6 +516,78 @@
       "alpha": 1.0,
       "ckpt": "results/es/ckpt_seed2_gen00300.npz",
       "train_seed": 2,
+      "bt_version": 2,
+      "budget": 300
+    },
+    {
+      "name": "HYB-s3-b300-a0.25",
+      "kind": "hybrid",
+      "alpha": 0.25,
+      "ckpt": "results/es/ckpt_seed3_gen00300.npz",
+      "train_seed": 3,
+      "bt_version": 2,
+      "budget": 300
+    },
+    {
+      "name": "HYB-s3-b300-a0.50",
+      "kind": "hybrid",
+      "alpha": 0.5,
+      "ckpt": "results/es/ckpt_seed3_gen00300.npz",
+      "train_seed": 3,
+      "bt_version": 2,
+      "budget": 300
+    },
+    {
+      "name": "HYB-s3-b300-a0.75",
+      "kind": "hybrid",
+      "alpha": 0.75,
+      "ckpt": "results/es/ckpt_seed3_gen00300.npz",
+      "train_seed": 3,
+      "bt_version": 2,
+      "budget": 300
+    },
+    {
+      "name": "RL-s3-b300-a1.00",
+      "kind": "rl",
+      "alpha": 1.0,
+      "ckpt": "results/es/ckpt_seed3_gen00300.npz",
+      "train_seed": 3,
+      "bt_version": 2,
+      "budget": 300
+    },
+    {
+      "name": "HYB-s4-b300-a0.25",
+      "kind": "hybrid",
+      "alpha": 0.25,
+      "ckpt": "results/es/ckpt_seed4_gen00300.npz",
+      "train_seed": 4,
+      "bt_version": 2,
+      "budget": 300
+    },
+    {
+      "name": "HYB-s4-b300-a0.50",
+      "kind": "hybrid",
+      "alpha": 0.5,
+      "ckpt": "results/es/ckpt_seed4_gen00300.npz",
+      "train_seed": 4,
+      "bt_version": 2,
+      "budget": 300
+    },
+    {
+      "name": "HYB-s4-b300-a0.75",
+      "kind": "hybrid",
+      "alpha": 0.75,
+      "ckpt": "results/es/ckpt_seed4_gen00300.npz",
+      "train_seed": 4,
+      "bt_version": 2,
+      "budget": 300
+    },
+    {
+      "name": "RL-s4-b300-a1.00",
+      "kind": "rl",
+      "alpha": 1.0,
+      "ckpt": "results/es/ckpt_seed4_gen00300.npz",
+      "train_seed": 4,
       "bt_version": 2,
       "budget": 300
     }
