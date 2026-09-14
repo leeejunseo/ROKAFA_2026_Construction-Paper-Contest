@@ -19,6 +19,7 @@ import matplotlib.pyplot as plt
 
 from ..config import EngagementConfig
 from ..env import TRAJ_COLUMNS
+from ..analysis.labels import T
 
 _C = {name: i for i, name in enumerate(TRAJ_COLUMNS)}
 BLUE, RED = "#1f5fbf", "#c8311f"
@@ -81,36 +82,36 @@ def trajectory_figure(traj: np.ndarray, events=(), path: str | None = None,
         if i < len(t):
             ax_xy.plot(by[i] / 1000, bx[i] / 1000, ".", color=BLUE, ms=4)
             ax_xy.plot(ry[i] / 1000, rx[i] / 1000, ".", color=RED, ms=4)
-    ax_xy.set_xlabel("East [km]"); ax_xy.set_ylabel("North [km]")
+    ax_xy.set_xlabel(T("East [km]", "동 [km]")); ax_xy.set_ylabel(T("North [km]", "북 [km]"))
     ax_xy.set_aspect("equal", adjustable="datalim")
     ax_xy.grid(alpha=0.3); ax_xy.legend(fontsize=8, loc="best")
-    ax_xy.set_title("(a) Plan view  (thick = in WEZ, firing)", fontsize=9)
+    ax_xy.set_title(T("(a) Plan view  (thick = in WEZ, firing)", "(a) 평면 궤적  (굵은 선 = WEZ 안, 사격 중)"), fontsize=9)
 
     # (b) 고도
     ax_h.plot(t, bh / 1000, color=BLUE, lw=1.2)
     ax_h.plot(t, rh / 1000, color=RED, lw=1.2)
     ax_h.axhline(ec.hard_deck / 1000, color="k", ls=":", lw=1)
-    ax_h.text(t[-1], ec.hard_deck / 1000, " hard deck", fontsize=7, va="bottom", ha="right")
-    ax_h.set_ylabel("Altitude [km]"); ax_h.grid(alpha=0.3)
-    ax_h.set_title("(b) Altitude", fontsize=9)
+    ax_h.text(t[-1], ec.hard_deck / 1000, T(" hard deck", " 하드덱"), fontsize=7, va="bottom", ha="right")
+    ax_h.set_ylabel(T("Altitude [km]", "고도 [km]")); ax_h.grid(alpha=0.3)
+    ax_h.set_title(T("(b) Altitude", "(b) 고도"), fontsize=9)
     plt.setp(ax_h.get_xticklabels(), visible=False)
 
     # (c) 거리 + ATA (이중축)
     ax_g.axhspan(ec.gun_range_min / 1000, ec.gun_range_max / 1000,
-                 color="0.85", alpha=0.6, lw=0, label="gun range")
-    ax_g.plot(t, rng_ / 1000, color="k", lw=1.2, label="range")
-    ax_g.set_ylabel("Range [km]"); ax_g.set_xlabel("Time [s]")
+                 color="0.85", alpha=0.6, lw=0, label=T("gun range", "기총 사거리"))
+    ax_g.plot(t, rng_ / 1000, color="k", lw=1.2, label=T("range", "거리"))
+    ax_g.set_ylabel(T("Range [km]", "거리 [km]")); ax_g.set_xlabel(T("Time [s]", "시간 [s]"))
     ax_g.set_ylim(0, max(2.0, np.nanmax(rng_) / 1000 * 1.05))
     ax2 = ax_g.twinx()
-    ax2.plot(t, ata, color=BLUE, lw=1.0, alpha=0.8, label="ATA (blue)")
+    ax2.plot(t, ata, color=BLUE, lw=1.0, alpha=0.8, label=T("ATA (blue)", "ATA (청)"))
     cone = ec.cone_deg_start + (ec.cone_deg_end - ec.cone_deg_start) * np.clip(t / ec.episode_time, 0, 1)
-    ax2.plot(t, cone, color=BLUE, ls="--", lw=0.8, alpha=0.6, label="hit cone")
-    ax2.set_ylim(0, 180); ax2.set_ylabel("ATA [deg]", color=BLUE)
+    ax2.plot(t, cone, color=BLUE, ls="--", lw=0.8, alpha=0.6, label=T("hit cone", "명중 원추"))
+    ax2.set_ylim(0, 180); ax2.set_ylabel(T("ATA [deg]", "ATA [도]"), color=BLUE)
     ax2.tick_params(axis="y", colors=BLUE)
     h1, l1 = ax_g.get_legend_handles_labels(); h2, l2 = ax2.get_legend_handles_labels()
     ax_g.legend(h1 + h2, l1 + l2, fontsize=7, loc="upper right", ncol=2)
     ax_g.grid(alpha=0.3)
-    ax_g.set_title("(c) Range and blue ATA", fontsize=9)
+    ax_g.set_title(T("(c) Range and blue ATA", "(c) 거리와 청군 ATA"), fontsize=9)
 
     # 이벤트 표시 (종료·WEZ 진입) — 고도 패널 위에 세로선
     for e in events:
