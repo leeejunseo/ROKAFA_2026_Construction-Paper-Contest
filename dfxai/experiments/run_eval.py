@@ -1,0 +1,183 @@
+"""
+본실험 배치 실행기.
+
+실험 설계
+---------
+조건(condition) = (모델종류, alpha, 체크포인트, BT버전) 의 조합
+상대(opponent)  = 고정 BT 2종. 그중 하나는 학습에 전혀 쓰지 않은 **보류 상대**.
+각 (조건 x 상대) 마다 seed 를 공유하며 **진영을 바꿔 두 번** 싸웁니다.
+
+진영 교대 짝지은 설계가 중요한 이유
+-----------------------------------
+초기조건이 아무리 무작위여도 특정 시드가 청군에 유리할 수 있습니다.
+같은 시드로 청/홍을 바꿔 한 번 더 싸우면 그 우연이 정확히 상쇄됩니다.
+실제로 이 설계를 넣기 전에는 동일 정책끼리의 자기대전 승률이 0.59가
+나왔지만, 넣은 뒤에는 정확히 0.500 이 나옵니다(설계 검증 완료).
+논문 방법 절에 이 검증 결과를 그대로 쓰면 좋습니다.
+
+출력
+----
+results/<run>/episodes.csv   : 교전별 결과 (승패, 피해, WEZ, 위반율)
+results/<run>/traj_<cond>.npz: 대리모델 적합용 (관측, 행동) 궤적
+results/<run>/manifest.json  : 설정 스냅샷 (재현성)
+"""
+from __future__ import annotations
+import argparse, json, os, re
+import numpy as np
+import pandas as pd
+from multiprocessing import Pool
+
+from ..config import config_dump
+from ..env import DogfightEnv, run_episode
+from ..agents.bt import BTPolicy
+from ..agents.hybrid import MLPPolicy, HybridPolicy
+
+
+def build_condition(spec: dict):
+    """조건 명세 -> 정책 객체."""
+    kind = spec["kind"]
+    if kind == "bt":
+        return BTPolicy(version=spec.get("bt_version", 2))
+    rl = MLPPolicy.load(spec["ckpt"])
+    if kind == "rl":
+        return rl
+    return HybridPolicy(BTPolicy(version=spec.get("bt_version", 2)),
+                        rl, alpha=float(spec["alpha"]))
+
+
+def _one_job(args):
+    spec, opp_version, seed, side, record = args
+    pol = build_condition(spec)
+    opp = BTPolicy(version=opp_version)
+    env = DogfightEnv()
+    alpha = float(spec.get("alpha", 1.0 if spec["kind"] == "rl" else 0.0))
+
+    if side == 0:                      # 평가 대상이 청군
+        out = run_episode(pol, opp, seed=seed, alpha=alpha, alpha_red=0.0,
+                          env=env, record=record)
+        res, ob, ac = out if record else (out, None, None)
+    else:                              # 진영 교대: 평가 대상이 홍군
+        res = run_episode(opp, pol, seed=seed, alpha=0.0, alpha_red=alpha,
+                          env=env, record=False)
+        ob, ac = None, None
+
+    win = res.winner if side == 0 else -res.winner
+    score = 1.0 if win == 1 else (0.5 if win == 0 else 0.0)
+    v = res.violations_blue if side == 0 else res.violations_red
+    row = dict(
+        cond=spec["name"], kind=spec["kind"], alpha=alpha,
+        bt_version=spec.get("bt_version", -1), ckpt=spec.get("ckpt", ""),
+        budget=spec.get("budget", -1), train_seed=spec.get("train_seed", -1),
+        opponent=f"BT-v{opp_version}", seed=seed, side=side,
+        score=score, win=int(win == 1), draw=int(win == 0), loss=int(win == -1),
+        outcome=res.outcome, duration=res.duration,
+        damage_dealt=res.damage_dealt if side == 0 else res.damage_taken,
+        damage_taken=res.damage_taken if side == 0 else res.damage_dealt,
+        wez_time=res.wez_time_blue if side == 0 else res.wez_time_red,
+        surv_time=res.duration,
+        viol_deck=v.get("deck", 0.0), viol_over_g=v.get("over_g", 0.0),
+        viol_sep=v.get("separation", 0.0),
+        mean_es=res.mean_es_blue if side == 0 else np.nan,
+    )
+    return row, (ob, ac)
+
+
+def run(conditions, opponents=(2, 3), n_seeds=100, workers=1,
+        outdir="results/main", record_episodes=30, seed0=10_000):
+    """본실험 실행.
+
+    record_episodes : 조건당 궤적을 기록할 교전 수. 궤적은 대리모델
+                      적합에만 쓰이므로 전부 기록할 필요가 없습니다.
+    """
+    os.makedirs(outdir, exist_ok=True)
+    jobs = []
+    for spec in conditions:
+        for ov in opponents:
+            for i in range(n_seeds):
+                s = seed0 + i
+                rec = i < record_episodes
+                jobs.append((spec, ov, s, 0, rec))
+                jobs.append((spec, ov, s, 1, False))
+
+    print(f"총 {len(jobs)}회 교전 실행 (조건 {len(conditions)} x 상대 "
+          f"{len(opponents)} x 시드 {n_seeds} x 진영 2)", flush=True)
+
+    if workers > 1:
+        with Pool(workers) as p:
+            results = p.map(_one_job, jobs, chunksize=8)
+    else:
+        results = [_one_job(j) for j in jobs]
+
+    rows = [r for r, _ in results]
+    df = pd.DataFrame(rows)
+    df.to_csv(os.path.join(outdir, "episodes.csv"), index=False)
+
+    # --- 궤적을 조건별로 합쳐 저장 ---
+    traj = {}
+    for (row, (ob, ac)) in results:
+        if ob is None:
+            continue
+        traj.setdefault(row["cond"], ([], []))
+        traj[row["cond"]][0].append(ob)
+        traj[row["cond"]][1].append(ac)
+    for cond, (obs_l, act_l) in traj.items():
+        safe = cond.replace("/", "_").replace(" ", "_")
+        np.savez_compressed(os.path.join(outdir, f"traj_{safe}.npz"),
+                            obs=np.concatenate(obs_l, axis=0),
+                            act=np.concatenate(act_l, axis=0))
+
+    with open(os.path.join(outdir, "manifest.json"), "w") as f:
+        json.dump({"conditions": conditions, "opponents": list(opponents),
+                   "n_seeds": n_seeds, "config": config_dump()}, f,
+                  indent=2, ensure_ascii=False)
+    print(f"저장 완료: {outdir}")
+    return df
+
+
+def default_conditions(ckpts: list[str] | None = None,
+                       alphas=(0.0, 0.25, 0.5, 0.75, 1.0),
+                       bt_version: int = 2) -> list[dict]:
+    """기본 실험 조건 목록.
+
+    BT 3종(교리 비교) + 학습예산별 체크포인트 x alpha 스윕.
+    alpha=0 은 정의상 순수 BT 이므로 중복을 피해 체크포인트마다 반복하지 않습니다.
+    """
+    conds = [dict(name=f"BT-v{v}", kind="bt", bt_version=v) for v in (1, 2, 3)]
+    for ck in (ckpts or []):
+        base = os.path.basename(ck)
+        # ckpt_seed<S>_gen<G>.npz  ->  학습 시드 S, 예산 G
+        ms = re.search(r"seed(\d+)", base)
+        mg = re.search(r"gen(\d+)", base)
+        train_seed = int(ms.group(1)) if ms else 0
+        budget = int(mg.group(1)) if mg else \
+            int("".join(ch for ch in base if ch.isdigit())[-5:] or 0)
+        for a in alphas:
+            if a == 0.0:
+                continue
+            kind = "rl" if a == 1.0 else "hybrid"
+            conds.append(dict(
+                name=f"{'RL' if a==1.0 else 'HYB'}-s{train_seed}-b{budget}-a{a:.2f}",
+                kind=kind, alpha=float(a), ckpt=ck, train_seed=train_seed,
+                bt_version=bt_version, budget=budget))
+    return conds
+
+
+def main():
+    ap = argparse.ArgumentParser(description="본실험 배치 실행")
+    ap.add_argument("--ckpts", nargs="*", default=[])
+    ap.add_argument("--alphas", nargs="*", type=float,
+                    default=[0.25, 0.5, 0.75, 1.0])
+    ap.add_argument("--opponents", nargs="*", type=int, default=[2, 3])
+    ap.add_argument("--n-seeds", type=int, default=100)
+    ap.add_argument("--workers", type=int, default=1)
+    ap.add_argument("--outdir", type=str, default="results/main")
+    ap.add_argument("--record-episodes", type=int, default=30)
+    ap.add_argument("--bt-version", type=int, default=2)
+    a = ap.parse_args()
+    conds = default_conditions(a.ckpts, tuple(a.alphas), a.bt_version)
+    run(conds, tuple(a.opponents), a.n_seeds, a.workers, a.outdir,
+        a.record_episodes)
+
+
+if __name__ == "__main__":
+    main()
