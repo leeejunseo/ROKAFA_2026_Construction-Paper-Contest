@@ -332,7 +332,11 @@ def make_figures(outdir: str, esdir: str = "results/es", traj_seed: int | None =
     os.makedirs(figdir, exist_ok=True)
     made = []
     from .overview import draw as draw_overview
-    made.append(draw_overview(os.path.join(figdir, "fig_overview.png")))
+    man = read_json(os.path.join(outdir, "manifest.json"))
+    conds = man.get("conditions") or []
+    n_ts = len({c.get("train_seed", -1) for c in conds if c["kind"] != "bt"} - {-1}) or 1
+    n_fights = len(conds) * len(man.get("opponents", [2, 3])) * int(man.get("n_seeds", 100)) * 2
+    made.append(draw_overview(os.path.join(figdir, "fig_overview.png"), len(conds), n_fights, n_ts))
     p = plot_learning_curve(esdir, os.path.join(figdir, "fig_learning_curve.png"))
     if p: made.append(p)
     m = load_merged(outdir)

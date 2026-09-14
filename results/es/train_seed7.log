@@ -1,0 +1,6 @@
+ÃÊ±âÈ­: results/es/bc_init.npz (hidden=(32, 32), 1827 params)
+[gen    1] fit mean=   1.623 max=   8.396 theta=   6.288 accept=0/1 lr=0.0070 alpha>=0.25 (5s)
+[gen   15] fit mean=  -7.691 max=  -1.335 theta=  -7.062 accept=9/15 lr=0.0041 alpha>=0.25 (64s)
+[gen   30] fit mean=   3.583 max=  10.782 theta=   8.834 accept=16/30 lr=0.0035 alpha>=0.25 (125s)
+[gen   45] fit mean=  -4.127 max=  12.798 theta=  -3.632 accept=30/45 lr=0.0100 alpha>=0.25 (189s)
+[gen   60] fit mean=   5.489 max=  18.125 theta=  17.264 accept=37/60 lr=0.0025 alpha>=0.25 (251s)

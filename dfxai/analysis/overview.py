@@ -34,7 +34,7 @@ def _arrow(ax, x0, y0, x1, y1, text=None, size=8):
         ax.text((x0 + x1) / 2, (y0 + y1) / 2 + 0.03, text, ha="center", va="bottom", fontsize=size, color="#333")
 
 
-def draw(path: str) -> str:
+def draw(path: str, n_conds: int = 67, n_fights: int = 26_800, n_train_seeds: int = 5) -> str:
     fig, ax = plt.subplots(figsize=(12.5, 6.2))
     ax.set_xlim(0, 1); ax.set_ylim(0, 1); ax.axis("off")
 
@@ -81,19 +81,19 @@ def draw(path: str) -> str:
           T("100 seeds × 2 sides", "100시드 × 진영 2"),
           T("(same seed, swap sides)", "(같은 시드로 청/홍 교대)"),
           "",
-          T("67 conditions · 26,800 fights", "67조건 · 26,800교전"),
-          T("5 training seeds", "학습 시드 5개"),
+          T(f"{n_conds} conditions · {n_fights:,} fights", f"{n_conds}조건 · {n_fights:,}교전"),
+          T(f"{n_train_seeds} training seeds", f"학습 시드 {n_train_seeds}개"),
           T("Wilson CI · Wilcoxon · Holm", "Wilson CI · Wilcoxon · Holm")],
          C_EVAL)
 
     # 4) 세 평가축
-    _box(ax, 0.86, 0.66, 0.12, 0.20, T("Performance", "전투 성능"),
+    _box(ax, 0.86, 0.64, 0.12, 0.24, T("Performance", "전투 성능"),
          [T("score (W1/D½/L0)", "점수 (승1·무½·패0)"), T("pure win rate", "순수승률"),
           T("outcome mix", "종료 사유")], C_AX, title_size=9, size=7)
-    _box(ax, 0.86, 0.42, 0.12, 0.20, T("Explainability", "설명가능성"),
+    _box(ax, 0.86, 0.38, 0.12, 0.24, T("Explainability", "설명가능성"),
          [T("surrogate tree", "대리 결정트리"), T("D* = min depth", "D* = 최소 깊이"),
           T("at fidelity 0.95", "(충실도 0.95)"), "F(4)"], C_AX, title_size=9, size=7)
-    _box(ax, 0.86, 0.18, 0.12, 0.20, T("Rule compliance", "규칙 준수"),
+    _box(ax, 0.86, 0.12, 0.12, 0.24, T("Rule compliance", "규칙 준수"),
          [T("hard deck", "하드덱 침범"), T("over-G", "과G"), T("separation", "최소이격"),
           T("per-step rate", "스텝당 위반율")], C_AX, title_size=9, size=7)
 
@@ -106,7 +106,7 @@ def draw(path: str) -> str:
     ax.text(0.58, 0.82, T("action", "행동"), ha="center", fontsize=8, color="#333")
     ax.text(0.825, 0.82, T("logs", "로그"), ha="center", fontsize=8, color="#333")
 
-    ax.text(0.5, 0.06, T(
+    ax.text(0.5, 0.03, T(
         "Three policy families share one interface, one arena and one yardstick; "
         "training budget and mix dial α are the independent variables.",
         "세 계열이 같은 인터페이스·같은 환경·같은 잣대를 공유하며, 학습 예산과 혼합계수 α 가 독립변수다."),
