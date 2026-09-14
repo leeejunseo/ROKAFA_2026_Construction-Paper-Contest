@@ -1,0 +1,65 @@
+ÃÑ 17200È¸ ±³Àü ½ÇÇà (Á¶°Ç 43 x »ó´ë 2 x ½Ãµå 100 x Áø¿µ 2)
+ÀúÀå ¿Ï·á: results/main
+             cond family   score  score_heldout  d_star  fidelity_at_4  viol_total
+ RL-s1-b300-a1.00     RL 0.78500         0.7900    17.0       0.898199    0.066842
+HYB-s1-b300-a0.75 Hybrid 0.76500         0.8650    17.0       0.898389    0.069867
+HYB-s1-b200-a0.75 Hybrid 0.76500         0.8525    17.0       0.881530    0.072566
+ RL-s1-b200-a1.00     RL 0.74750         0.7700    17.0       0.918359    0.059146
+ RL-s2-b300-a1.00     RL 0.74625         0.7525     6.0       0.923619    0.033457
+ RL-s0-b300-a1.00     RL 0.72875         0.7375     3.0       0.965788    0.040006
+ RL-s2-b200-a1.00     RL 0.72625         0.7350     7.0       0.925865    0.042616
+HYB-s2-b100-a0.75 Hybrid 0.71875         0.7675    17.0       0.921886    0.050892
+HYB-s2-b200-a0.75 Hybrid 0.71875         0.7550    17.0       0.888082    0.050054
+HYB-s1-b100-a0.50 Hybrid 0.71000         0.8675    17.0       0.910980    0.094522
+HYB-s0-b300-a0.75 Hybrid 0.70500         0.7075     6.0       0.948565    0.040876
+HYB-s1-b100-a0.75 Hybrid 0.69750         0.8075    17.0       0.921462    0.080745
+HYB-s0-b200-a0.75 Hybrid 0.69750         0.7525    17.0       0.934617    0.047810
+HYB-s1-b300-a0.50 Hybrid 0.69750         0.7625    17.0       0.894025    0.093508
+ RL-s2-b100-a1.00     RL 0.69500         0.7475     6.0       0.929311    0.049115
+ RL-s0-b200-a1.00     RL 0.69500         0.7275     4.0       0.952853    0.037491
+HYB-s1-b200-a0.50 Hybrid 0.69250         0.7875    17.0       0.886193    0.082488
+HYB-s0-b100-a0.75 Hybrid 0.69250         0.8050    17.0       0.902040    0.093286
+HYB-s1-b300-a0.25 Hybrid 0.67875         0.8025    17.0       0.890527    0.089771
+HYB-s1-b100-a0.25 Hybrid 0.67875         0.8350    17.0       0.893361    0.101409
+HYB-s2-b300-a0.75 Hybrid 0.67625         0.6800    10.0       0.923312    0.034259
+HYB-s2-b100-a0.50 Hybrid 0.67250         0.7825     7.0       0.939738    0.069575
+            BT-v2     BT 0.67125         0.8425     4.0       0.952355    0.100491
+HYB-s2-b100-a0.25 Hybrid 0.66875         0.8125    17.0       0.925529    0.083781
+HYB-s0-b100-a0.50 Hybrid 0.66250         0.7875    17.0       0.908445    0.115635
+  HYB-s0-b0-a0.25 Hybrid 0.65750         0.8300     5.0       0.949784    0.103325
+HYB-s1-b200-a0.25 Hybrid 0.65500         0.7925    17.0       0.910903    0.084639
+ RL-s1-b100-a1.00     RL 0.64750         0.7475    15.0       0.925936    0.065814
+HYB-s0-b100-a0.25 Hybrid 0.64500         0.8325    17.0       0.922339    0.098414
+HYB-s0-b300-a0.25 Hybrid 0.63875         0.7475     5.0       0.947577    0.071867
+   RL-s0-b0-a1.00     RL 0.63875         0.8400     2.0       0.974963    0.095566
+HYB-s2-b200-a0.25 Hybrid 0.63625         0.7275    17.0       0.914551    0.078186
+  HYB-s0-b0-a0.50 Hybrid 0.63625         0.8275     3.0       0.967729    0.095508
+ RL-s0-b100-a1.00     RL 0.63250         0.8150     8.0       0.920467    0.129450
+HYB-s2-b200-a0.50 Hybrid 0.62625         0.6850    17.0       0.912910    0.063302
+HYB-s0-b200-a0.50 Hybrid 0.62500         0.7000    11.0       0.904451    0.060313
+HYB-s2-b300-a0.50 Hybrid 0.62375         0.6525    17.0       0.904591    0.058311
+HYB-s0-b300-a0.50 Hybrid 0.62125         0.6425     6.0       0.936095    0.056645
+  HYB-s0-b0-a0.75 Hybrid 0.62000         0.8075     3.0       0.966941    0.096337
+HYB-s0-b200-a0.25 Hybrid 0.61375         0.7175     5.0       0.932059    0.068152
+HYB-s2-b300-a0.25 Hybrid 0.60875         0.6675     8.0       0.930830    0.060826
+            BT-v3     BT 0.32875         0.5000     5.0       0.940204    0.008046
+            BT-v1     BT 0.24125         0.2325     1.0       0.995245    0.004690
+results/main\paper_figs\fig_learning_curve.png
+results/main\paper_figs\fig_budget_sweep.png
+results/main\paper_figs\fig_tradeoff_families.png
+results/main\paper_figs\fig_traj_BT-v1.png
+results/main\paper_figs\fig_traj_BT-v2.png
+results/main\paper_figs\fig_traj_BT-v3.png
+results/main\paper_figs\fig_traj_HYB-s0-b300-a0.25.png
+results/main\paper_figs\fig_traj_HYB-s0-b300-a0.50.png
+results/main\paper_figs\fig_traj_HYB-s0-b300-a0.75.png
+results/main\paper_figs\fig_traj_RL-s0-b300-a1.00.png
+paper/results_auto.md
+results/replay\rep_BT-v1_vs_BT-v3_seed10000.acmi  (137 KB)  timeout  ½ÂÀÚ=¹«  120.2s  HP 100:100
+results/replay\rep_BT-v2_vs_BT-v3_seed10000.acmi  (139 KB)  timeout  ½ÂÀÚ=Ã»  120.2s  HP 100:8
+results/replay\rep_BT-v3_vs_BT-v3_seed10000.acmi  (136 KB)  timeout  ½ÂÀÚ=¹«  120.2s  HP 100:100
+results/replay\rep_HYB-a0.25-BT-v2_vs_BT-v3_seed10000.acmi  (141 KB)  timeout  ½ÂÀÚ=Ã»  120.2s  HP 100:90
+results/replay\rep_HYB-a0.50-BT-v2_vs_BT-v3_seed10000.acmi  (139 KB)  timeout  ½ÂÀÚ=¹«  120.2s  HP 100:100
+results/replay\rep_HYB-a0.75-BT-v2_vs_BT-v3_seed10000.acmi  (142 KB)  timeout  ½ÂÀÚ=¹«  120.2s  HP 100:100
+results/replay\rep_RL-alpha-1.00_vs_BT-v3_seed10000.acmi  (143 KB)  timeout  ½ÂÀÚ=Ã»  120.2s  HP 100:91
+[18:18:16] results/es\monitor.html  (18 ckpt evaluated)

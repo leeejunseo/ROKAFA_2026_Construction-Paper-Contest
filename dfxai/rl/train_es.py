@@ -31,7 +31,8 @@ from .shaping import potential, episode_fitness
 # ----------------------------------------------------------------- 적합도
 def _rollout_fitness(args):
     """후보 파라미터 하나에 대한 평균 적합도."""
-    flat, hidden, seeds, alphas, opp_versions, bt_version = args
+    flat, hidden, seeds, alphas, opp_versions, bt_version, *rest = args
+    preset = rest[0] if rest else "default"
     rl = MLPPolicy(hidden=hidden, params=flat)
     bt = BTPolicy(version=bt_version)
     env = DogfightEnv()
@@ -47,7 +48,7 @@ def _rollout_fitness(args):
             pot_sum += potential(ob); n += 1
             if done:
                 break
-        total += episode_fitness(env.result(), pot_sum / max(n, 1))
+        total += episode_fitness(env.result(), pot_sum / max(n, 1), preset)
     return total / len(seeds)
 
 
@@ -67,7 +68,8 @@ def train(generations=200, pop=40, sigma=0.08, lr=0.03, episodes=4,
           hidden=(32, 32), seed=0, workers=1, bt_version=2,
           opponents=(1, 2), outdir="results/es", checkpoint_every=20,
           alpha_curriculum=False, tag="seed0", init: str | None = None,
-          accept_test: bool = True, accept_tol: float = 0.0):
+          accept_test: bool = True, accept_tol: float = 0.0,
+          fitness: str = "default"):
     os.makedirs(outdir, exist_ok=True)
     rng = np.random.default_rng(seed)
     lr_eff, n_accept = lr, 0
@@ -108,7 +110,7 @@ def train(generations=200, pop=40, sigma=0.08, lr=0.03, episodes=4,
         eps = np.concatenate([eps, -eps], axis=0)      # 미러 샘플링
         cands = theta[None, :] + sigma * eps
 
-        jobs = [(cands[i], hidden, seeds, alphas, opps, bt_version)
+        jobs = [(cands[i], hidden, seeds, alphas, opps, bt_version, fitness)
                 for i in range(pop)]
         fits = (np.array(pool.map(_rollout_fitness, jobs)) if pool
                 else np.array([_rollout_fitness(j) for j in jobs]))
@@ -123,8 +125,8 @@ def train(generations=200, pop=40, sigma=0.08, lr=0.03, episodes=4,
         # theta 를 **같은 시드**로 평가해(대응 비교라 잡음이 작음) 나빠지면 거부하고
         # 보폭을 줄입니다. 수용되면 보폭을 서서히 원래대로 되돌립니다.
         if accept_test:
-            chk = [(theta, hidden, seeds, alphas, opps, bt_version),
-                   (theta_new, hidden, seeds, alphas, opps, bt_version)]
+            chk = [(theta, hidden, seeds, alphas, opps, bt_version, fitness),
+                   (theta_new, hidden, seeds, alphas, opps, bt_version, fitness)]
             f_old, f_new = (pool.map(_rollout_fitness, chk) if pool
                             else [_rollout_fitness(j) for j in chk])
             accepted = f_new >= f_old - accept_tol
@@ -187,6 +189,8 @@ def main():
                     help="옛 방식(alpha 하한 상승 커리큘럼). 기본은 고정 격자.")
     ap.add_argument("--init", type=str, default=None,
                     help="초기 가중치 체크포인트 (pretrain_bc.py 출력). 권장.")
+    ap.add_argument("--fitness", default="default", choices=("default", "kill_first"),
+                    help="적합도 프리셋 (shaping.PRESETS). kill_first 는 부록 강건성용.")
     ap.add_argument("--no-accept-test", action="store_true",
                     help="수용 검사(백트래킹) 끄기. 순수 OpenAI-ES 갱신 (비교용).")
     args = ap.parse_args()
@@ -196,7 +200,7 @@ def main():
           workers=args.workers, bt_version=args.bt_version,
           outdir=args.outdir, checkpoint_every=args.checkpoint_every, tag=tag,
           alpha_curriculum=args.alpha_curriculum, init=args.init,
-          accept_test=not args.no_accept_test)
+          accept_test=not args.no_accept_test, fitness=args.fitness)
 
 
 if __name__ == "__main__":

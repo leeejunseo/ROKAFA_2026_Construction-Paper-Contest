@@ -78,25 +78,39 @@ def shaped_step_reward(obs: np.ndarray, next_obs: np.ndarray,
     return r_env + (gamma * potential(next_obs) - potential(obs))
 
 
-def terminal_reward(winner: int, outcome: str) -> float:
+# 적합도 프리셋.
+#   default    : 본실험. 격추승 +10, 시간종료승 +5.
+#   kill_first : 부록 강건성 실험. 본실험에서 학습 정책 일부가 "한 번 쏘고 이탈해
+#                시간종료 HP 우위로 이기는" 전술로 수렴했으므로(규칙상 합법),
+#                격추를 크게 우대하고 시간종료승을 거의 보상하지 않는 변형에서도
+#                성능-설명가능성 관계의 형태가 유지되는지 확인합니다.
+PRESETS = {
+    "default":    dict(win_kill=10.0, win_time=5.0, k_wez=K_WEZ),
+    "kill_first": dict(win_kill=25.0, win_time=1.0, k_wez=1.0),
+}
+
+
+def terminal_reward(winner: int, outcome: str, preset: str = "default") -> float:
     """종료 보상. 격추승에 가중치를 더 줍니다."""
+    p = PRESETS[preset]
     if outcome == "crash" and winner == -1:
         return -15.0            # 자기 지면충돌은 크게 벌점
     if outcome == "collision":
         return -5.0
     if winner == 1:
-        return 10.0 if outcome == "gun_kill" else 5.0
+        return p["win_kill"] if outcome == "gun_kill" else p["win_time"]
     if winner == -1:
         return -10.0 if outcome == "gun_kill" else -5.0
     return 0.0
 
 
-def episode_fitness(res, mean_potential: float) -> float:
+def episode_fitness(res, mean_potential: float, preset: str = "default") -> float:
     """ES 학습기가 쓰는 적합도. 그래디언트가 없으므로 에피소드 단위 스칼라 하나면 됩니다."""
+    p = PRESETS[preset]
     f = 0.0
     f += K_DAMAGE * (res.damage_dealt - res.damage_taken)
-    f += K_WEZ * res.wez_time_blue
-    f += terminal_reward(res.winner, res.outcome)
+    f += p["k_wez"] * res.wez_time_blue
+    f += terminal_reward(res.winner, res.outcome, preset)
     f += K_POTENTIAL * mean_potential
     if res.outcome == "timeout" and res.damage_dealt == 0.0 and res.damage_taken == 0.0:
         f += PASSIVE_DRAW

@@ -54,9 +54,9 @@ python -m dfxai.analysis.report --outdir results/dryrun
 #      무작위 초기화로 ES 를 돌리면 원거리 회피로 수렴합니다 (5.5 절).
 python -m dfxai.rl.pretrain_bc --teacher 2 --out results/es/bc_init.npz
 
-# (1) ES 미세조정. 학습 시드 3개를 권장합니다(시드 간 분산 보고용).
+# (1) ES 미세조정. 학습 시드 5개 (D* 의 시드 간 분산이 커서 3개로는 부족합니다).
 export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1
-for s in 0 1 2; do
+for s in 0 1 2 3 4; do
   python -m dfxai.rl.train_es --generations 300 --pop 32 --episodes 8 \
          --sigma 0.05 --lr 0.01 --workers 10 --checkpoint-every 50 \
          --seed $s --tag seed$s --init results/es/bc_init.npz
@@ -66,12 +66,12 @@ done
 #      60초마다 갱신되고, 체크포인트마다 BT 상대 실제 점수까지 찍어 줍니다.
 python -m dfxai.rl.monitor --esdir results/es --watch 60
 
-# (2) 본실험 (진영 교대 짝지은 평가). 예산 4점(복제본 0 + 100/200/300세대) x 시드 3개 x alpha 4점
+# (2) 본실험 (진영 교대 짝지은 평가). 예산 4점(복제본 0 + 100/200/300세대) x 시드 5개 x alpha 4점
 python -m dfxai.experiments.run_eval \
        --ckpts results/es/bc_init.npz \
-               results/es/ckpt_seed{0,1,2}_gen00100.npz \
-               results/es/ckpt_seed{0,1,2}_gen00200.npz \
-               results/es/ckpt_seed{0,1,2}_gen00300.npz \
+               results/es/ckpt_seed{0,1,2,3,4}_gen00100.npz \
+               results/es/ckpt_seed{0,1,2,3,4}_gen00200.npz \
+               results/es/ckpt_seed{0,1,2,3,4}_gen00300.npz \
        --alphas 0.25 0.5 0.75 1.0 --opponents 2 3 \
        --n-seeds 100 --workers 10 --outdir results/main
 
@@ -84,7 +84,20 @@ python -m dfxai.analysis.paper   --outdir results/main --esdir results/es \
                                  --out paper/results_auto.md
 
 # (5) 교전을 눈으로 보기 — Tacview 로 재생할 .acmi 생성
-python -m dfxai.viz.replay --blue bt:2 --red bt:3 --seeds 0 1 2
+python -m dfxai.viz.replay --from-run results/main --red bt:3      # 논문 그림과 같은 seed
+python -m dfxai.viz.replay --blue bt:2 --red bt:3 --seeds 0 1 2   # 임의 대전
+
+# (6) 부록 강건성: '격추 우선' 적합도로 학습한 정책도 같은 관계를 보이는가
+for s in 0 1; do
+  python -m dfxai.rl.train_es --generations 300 --pop 32 --episodes 8 \
+         --sigma 0.05 --lr 0.01 --workers 10 --checkpoint-every 50 \
+         --seed $s --tag seed$s --init results/es/bc_init.npz \
+         --fitness kill_first --outdir results/es_killfirst
+done
+python -m dfxai.experiments.run_eval --ckpts results/es_killfirst/ckpt_seed{0,1}_gen00{100,200,300}.npz \
+       --alphas 1.0 --opponents 2 3 --n-seeds 100 --workers 10 --outdir results/robust
+python -m dfxai.analysis.report --outdir results/robust
+python -m dfxai.analysis.paper  --outdir results/robust --esdir results/es_killfirst --out paper/results_robust.md
 ```
 
 논문 쓰기는 `paper/` 폴더에서 시작하십시오.

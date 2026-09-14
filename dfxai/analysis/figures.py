@@ -69,14 +69,21 @@ def plot_learning_curve(esdir: str, path: str):
     if not files:
         return None
     fig, ax = plt.subplots(figsize=(6.4, 3.8))
+    win = 15
     for f in files:
         tag = os.path.basename(f)[len("history_"):-len(".json")]
         h = pd.DataFrame(read_json(f))
-        ax.plot(h["gen"], h["fit_mean"], lw=1.2, label=f"{tag} (pop. mean)")
-        ax.plot(h["gen"], h["fit_max"], lw=0.8, ls="--", alpha=0.6,
-                label=f"{tag} (pop. max)")
-    ax.set_xlabel("Generation"); ax.set_ylabel("Fitness (shaped)")
-    ax.set_title("Evolution-strategy learning curve")
+        # 세대마다 시드가 바뀌어 원값은 잡음이 큽니다. 이동평균(15세대)으로 그리고
+        # 원값은 옅게 깔아 둡니다. 수용 검사가 켜진 실행이면 현재 θ 의 적합도를 씁니다.
+        col = "fit_theta" if "fit_theta" in h.columns else "fit_mean"
+        y = h[col].astype(float)
+        line, = ax.plot(h["gen"], y.rolling(win, min_periods=1, center=True).mean(),
+                        lw=1.6, label=f"{tag}")
+        ax.plot(h["gen"], y, lw=0.5, alpha=0.18, color=line.get_color())
+    ax.axhline(0, color="k", lw=0.5)
+    ax.set_xlabel("Generation")
+    ax.set_ylabel("Fitness of current policy (shaped)")
+    ax.set_title(f"ES learning curve ({win}-generation moving average; faint = raw)", fontsize=9)
     ax.grid(alpha=0.3); ax.legend(fontsize=7)
     fig.tight_layout(); fig.savefig(path, dpi=180); plt.close(fig)
     return path
@@ -95,9 +102,11 @@ def plot_budget_sweep(m: pd.DataFrame, path: str):
     bt = m[m["family"] == "BT"]
     if learn.empty:
         return None
+    # D* 는 절단(17)과 시드 분산이 커서 F(4) 를 나란히 둡니다 — 방향이 같아야 주장이 섭니다.
     metrics = [("score", "Combat score"), ("d_star", r"$D^*$ (min depth @ 0.95)"),
+               ("fidelity_at_4", r"$F(4)$  (depth-4 fidelity, higher = simpler)"),
                ("viol_total", "Violation rate / step")]
-    fig, axes = plt.subplots(1, 3, figsize=(12.5, 3.8))
+    fig, axes = plt.subplots(1, 4, figsize=(16.5, 3.8))
     alphas = sorted(learn["alpha"].unique())
     cmap = plt.get_cmap("viridis")
     for ax, (col, lab) in zip(axes, metrics):
