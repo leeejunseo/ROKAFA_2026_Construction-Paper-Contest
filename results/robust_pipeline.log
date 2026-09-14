@@ -1,2 +1,20 @@
 총 3600회 교전 실행 (조건 9 x 상대 2 x 시드 100 x 진영 2)
 저장 완료: results/robust
+            cond family   score  score_heldout  d_star  fidelity_at_4  viol_total
+RL-s0-b300-a1.00     RL 0.74000         0.7875     6.0       0.942820    0.050343
+RL-s0-b100-a1.00     RL 0.73625         0.8200     4.0       0.952263    0.062056
+RL-s1-b200-a1.00     RL 0.68625         0.7200     5.0       0.944051    0.038413
+           BT-v2     BT 0.67125         0.8425     4.0       0.952355    0.100491
+RL-s0-b200-a1.00     RL 0.64500         0.6875     6.0       0.931019    0.049400
+RL-s1-b100-a1.00     RL 0.64250         0.6775     5.0       0.947347    0.035116
+RL-s1-b300-a1.00     RL 0.61750         0.7600    17.0       0.886431    0.127650
+           BT-v3     BT 0.32875         0.5000     5.0       0.940204    0.008046
+           BT-v1     BT 0.24125         0.2325     1.0       0.995245    0.004690
+results/robust\paper_figs\fig_learning_curve.png
+results/robust\paper_figs\fig_budget_sweep.png
+results/robust\paper_figs\fig_tradeoff_families.png
+results/robust\paper_figs\fig_traj_BT-v1.png
+results/robust\paper_figs\fig_traj_BT-v2.png
+results/robust\paper_figs\fig_traj_BT-v3.png
+results/robust\paper_figs\fig_traj_RL-s0-b300-a1.00.png
+paper/results_robust.md
