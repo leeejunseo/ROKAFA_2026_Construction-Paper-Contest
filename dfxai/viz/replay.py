@@ -69,6 +69,45 @@ def _slug(s: str) -> str:
     return "".join(keep).strip("-")
 
 
+def spec_from_condition(c: dict) -> str:
+    """run_eval 의 조건 명세(dict) -> 이 CLI 의 정책 명세 문자열."""
+    if c["kind"] == "bt":
+        return f"bt:{c.get('bt_version', 2)}"
+    if c["kind"] == "rl":
+        return f"rl:{c['ckpt']}"
+    return f"hyb:{c['ckpt']}:{c['alpha']}"
+
+
+def export_from_manifest(rundir: str, seeds: list[int], red_spec: str = "bt:3",
+                         outdir: str = "results/replay", stride: int = 2):
+    """본실험 manifest 의 대표 조건(BT 3종 + 최대 예산 학습 조건)을 ACMI 로.
+
+    figures.py 의 대표 궤적 그림과 같은 조건·같은 seed 를 쓰므로, 논문 그림과
+    Tacview 재생이 1:1 로 대응합니다.
+    """
+    from ..analysis.figures import read_json, pick_representative
+    man = read_json(os.path.join(rundir, "manifest.json"))
+    conds = pick_representative(man.get("conditions") or [])
+    # figures.py 가 고른 대표 시드가 있으면 그것을 기본으로 씁니다 (그림과 1:1 대응)
+    rep = os.path.join(rundir, "paper_figs", "representative_seed.txt")
+    if not seeds and os.path.exists(rep):
+        seeds = [int(open(rep).read().strip())]
+    seeds = seeds or [10_000]
+    out = []
+    for c in conds:
+        for s in seeds:
+            out.append(export(spec_from_condition(c), red_spec, s, outdir,
+                              c.get("bt_version", 2), stride, prefix="rep_"))
+    return out
+
+
+def _print(path: str, res) -> None:
+    size = os.path.getsize(path) / 1024.0
+    who = {1: "청", -1: "홍", 0: "무"}[res.winner]
+    print(f"{path}  ({size:.0f} KB)  {res.outcome}  승자={who}  "
+          f"{res.duration:.1f}s  HP {res.hp_blue:.0f}:{res.hp_red:.0f}")
+
+
 def main():
     ap = argparse.ArgumentParser(description="교전 재생용 ACMI 내보내기")
     ap.add_argument("--blue", default="bt:2", help="청군 정책 명세")
@@ -81,15 +120,20 @@ def main():
                     help="하이브리드에 들어가는 BT 버전")
     ap.add_argument("--stride", type=int, default=2,
                     help="기록 간격(적분 스텝 수). 2 = 0.1초")
+    ap.add_argument("--from-run", default=None, metavar="RUNDIR",
+                    help="본실험 결과 폴더. 대표 조건 전부를 --red 상대로 내보냅니다")
     a = ap.parse_args()
 
     seeds = a.seeds if a.seeds else [a.seed]
+    if a.from_run:
+        # --seeds 를 명시하지 않았으면 figures.py 의 대표 시드를 따릅니다
+        for path, res in export_from_manifest(a.from_run, a.seeds or [], a.red,
+                                              a.outdir, a.stride):
+            _print(path, res)
+        return
     for s in seeds:
         path, res = export(a.blue, a.red, s, a.outdir, a.bt_version, a.stride)
-        size = os.path.getsize(path) / 1024.0
-        who = {1: "청", -1: "홍", 0: "무"}[res.winner]
-        print(f"{path}  ({size:.0f} KB)  {res.outcome}  승자={who}  "
-              f"{res.duration:.1f}s  HP {res.hp_blue:.0f}:{res.hp_red:.0f}")
+        _print(path, res)
 
 
 if __name__ == "__main__":

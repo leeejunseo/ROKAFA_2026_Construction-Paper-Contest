@@ -29,7 +29,7 @@ from ..config import config_dump, FEATURE_NAMES, ACTION_NAMES
 from ..agents.bt import BTPolicy
 from ..agents.hybrid import MLPPolicy
 from ..xai.surrogate import rule_extract
-from .figures import parse_cond
+from .figures import parse_cond, load_merged, read_json
 
 
 # ------------------------------------------------------------ 도우미
@@ -93,7 +93,8 @@ def sec_complexity() -> str:
     for v in (1, 2, 3):
         p = BTPolicy(version=v)
         rows.append(dict(모델=p.name, 종류="행동트리", 복잡도=f"노드 {p.complexity()['bt_nodes']}개",
-                         설명={1: "수평 추격, 고정 4G", 2: "3차원 양력벡터 지향, 최대 G·추력",
+                         설명={1: "합류 회피 + 수평 추격, 고정 4G",
+                              2: "합류 회피 + 3차원 양력벡터 지향, 최대 G·추력",
                               3: "v2 + 하드덱 회복·8G 자율제한·리드추격"}[v]))
         trees += f"\n**{p.name}**\n\n```\n{p.describe()}```\n"
     mlp = MLPPolicy()
@@ -108,17 +109,15 @@ def sec_complexity() -> str:
 def _load_all(outdir: str):
     summ = pd.read_csv(os.path.join(outdir, "summary.csv"))
     xai = pd.read_csv(os.path.join(outdir, "xai.csv"))
-    merged = pd.read_csv(os.path.join(outdir, "merged.csv"))
     pw = pd.read_csv(os.path.join(outdir, "pairwise.csv"))
     bino = pd.read_csv(os.path.join(outdir, "binomial.csv"))
-    man = json.load(open(os.path.join(outdir, "manifest.json"), encoding="utf-8"))
-    meta = pd.DataFrame([parse_cond(c) for c in merged["cond"]])
-    merged = pd.concat([merged.reset_index(drop=True), meta], axis=1)
+    man = read_json(os.path.join(outdir, "manifest.json"))
+    merged = load_merged(outdir)
     return summ, xai, merged, pw, bino, man
 
 
 def sec_main_table(summ: pd.DataFrame, xai: pd.DataFrame, merged: pd.DataFrame,
-                   man: dict) -> str:
+                   man: dict, outdir: str) -> str:
     opps = sorted(summ["opponent"].unique())
     held = opps[-1]
     n_seeds = man.get("n_seeds", "?")
@@ -141,6 +140,18 @@ def sec_main_table(summ: pd.DataFrame, xai: pd.DataFrame, merged: pd.DataFrame,
                 r[f"무승부 vs {o}"] = f"{s['draw_rate']:.2f}"
         rows.append(r)
     out += "**(a) 전투 성능**\n\n" + md_table(pd.DataFrame(rows)) + "\n\n"
+
+    # 종료 사유 분포 — 무승부의 정체(충돌인지 시간종료인지)를 밝혀야 합니다
+    ep_path = os.path.join(outdir, "episodes.csv")
+    if os.path.exists(ep_path):
+        ep = pd.read_csv(ep_path)
+        oc = (ep.groupby("cond")["outcome"].value_counts(normalize=True)
+                .unstack(fill_value=0.0).reindex(merged["cond"]).reset_index())
+        oc = oc.rename(columns={"gun_kill": "격추", "timeout": "시간종료",
+                                "crash": "지면충돌", "collision": "공중충돌"})
+        out += ("**(a′) 종료 사유 분포 (교전 비율, 진영·상대 합산)** — 무승부는 "
+                "공중충돌(양측 패)과 HP 동률 시간종료로 나뉩니다.\n\n"
+                + md_table(oc) + "\n\n")
 
     # 설명가능성 + 규칙준수 (상대 평균)
     rows = []
@@ -203,14 +214,14 @@ def sec_budget_monotonic(merged: pd.DataFrame) -> str:
         r1, p1, n = _spearman(g["budget"], g["score"])
         r2, p2, _ = _spearman(g["budget"], g["d_star"])
         r3, p3, _ = _spearman(g["budget"], g["viol_total"])
-        rows.append({"alpha": al, "n": n, "ρ(예산, 점수)": r1, "p": p1,
-                     "ρ(예산, D*)": r2, "p ": p2, "ρ(예산, 위반율)": r3, "p  ": p3})
+        rows.append({"alpha": al, "n": n, "ρ(예산, 점수)": r1, "p_점수": p1,
+                     "ρ(예산, D*)": r2, "p_D*": p2, "ρ(예산, 위반율)": r3, "p_위반율": p3})
     r1, p1, n = _spearman(d["budget"], d["score"])
     r2, p2, _ = _spearman(d["budget"], d["d_star"])
     r3, p3, _ = _spearman(d["budget"], d["viol_total"])
-    rows.append({"alpha": "전체", "n": n, "ρ(예산, 점수)": r1, "p": p1,
-                 "ρ(예산, D*)": r2, "p ": p2, "ρ(예산, 위반율)": r3, "p  ": p3})
-    out += md_table(pd.DataFrame(rows), {"p": "{:.4f}", "p ": "{:.4f}", "p  ": "{:.4f}"}) + "\n"
+    rows.append({"alpha": "전체", "n": n, "ρ(예산, 점수)": r1, "p_점수": p1,
+                 "ρ(예산, D*)": r2, "p_D*": p2, "ρ(예산, 위반율)": r3, "p_위반율": p3})
+    out += md_table(pd.DataFrame(rows), {"p_점수": "{:.4f}", "p_D*": "{:.4f}", "p_위반율": "{:.4f}"}) + "\n"
 
     # 예산×alpha 평균표 (학습 시드 평균)
     g = d.groupby(["budget", "alpha"]).agg(
@@ -295,7 +306,7 @@ def sec_training(esdir: str) -> str:
         return ""
     rows = []
     for f in files:
-        h = pd.DataFrame(json.load(open(f)))
+        h = pd.DataFrame(read_json(f))
         tag = os.path.basename(f)[len("history_"):-len(".json")]
         rows.append(dict(학습시드=tag, 세대=int(h["gen"].max()),
                          초기적합도=float(h["fit_mean"].iloc[0]),
@@ -315,7 +326,7 @@ def build(outdir: str, esdir: str, out_path: str) -> str:
              f"시드 {man.get('n_seeds')}\n"]
     if synthetic:
         parts.append("\n> **경고: 합성 데이터입니다. 수치를 논문에 쓰지 마십시오.**\n")
-    parts += [sec_main_table(summ, xai, merged, man), sec_correlation(merged),
+    parts += [sec_main_table(summ, xai, merged, man, outdir), sec_correlation(merged),
               sec_budget_monotonic(merged), sec_pairwise(pw, bino),
               sec_rules(outdir, merged), sec_figures(outdir),
               "\n---\n", sec_complexity(), sec_training(esdir), sec_config()]

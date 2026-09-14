@@ -20,6 +20,7 @@ alpha = 1  -> 순수 RL
       6~8개가 되어 비로소 '곡선'이라 부를 수 있게 됩니다.
 """
 from __future__ import annotations
+import math
 import numpy as np
 from .base import Policy
 from ..config import OBS_DIM, ACTION_DIM
@@ -92,7 +93,14 @@ class HybridPolicy(Policy):
             return self.bt.act(obs)
         if a >= 1.0:
             return self.rl.act(obs)
-        return np.clip((1.0 - a) * self.bt.act(obs) + a * self.rl.act(obs), -1.0, 1.0)
+        b, r = self.bt.act(obs), self.rl.act(obs)
+        out = np.clip((1.0 - a) * b + a * r, -1.0, 1.0)
+        # 뱅크 채널은 각도(±1 = ±180°)라 원형 평균을 써야 합니다. 선형 평균은
+        # -170° 와 +170° 를 섞어 0° 를 내는데, 이는 양력벡터를 정반대로 돌립니다.
+        mb, mr = b[0] * math.pi, r[0] * math.pi
+        out[0] = math.atan2((1.0 - a) * math.sin(mb) + a * math.sin(mr),
+                            (1.0 - a) * math.cos(mb) + a * math.cos(mr)) / math.pi
+        return out
 
     def complexity(self) -> dict:
         d = {"alpha": self.alpha}

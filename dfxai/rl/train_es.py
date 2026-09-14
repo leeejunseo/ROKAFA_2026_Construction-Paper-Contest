@@ -60,30 +60,49 @@ def _rank_transform(x: np.ndarray) -> np.ndarray:
 
 
 # ----------------------------------------------------------------- 학습 루프
+ALPHA_GRID = (0.25, 0.5, 0.75, 1.0)     # 평가 격자와 동일
+
+
 def train(generations=200, pop=40, sigma=0.08, lr=0.03, episodes=4,
           hidden=(32, 32), seed=0, workers=1, bt_version=2,
           opponents=(1, 2), outdir="results/es", checkpoint_every=20,
-          alpha_curriculum=True, tag="seed0"):
+          alpha_curriculum=False, tag="seed0", init: str | None = None,
+          accept_test: bool = True, accept_tol: float = 0.0):
     os.makedirs(outdir, exist_ok=True)
     rng = np.random.default_rng(seed)
-    proto = MLPPolicy(hidden=hidden, seed=seed)
-    theta = proto.flat.copy() * 0.1          # 작은 초기값에서 출발
+    lr_eff, n_accept = lr, 0
+    if init:
+        # 행동 복제 초기화 (pretrain_bc.py). 무작위 초기화는 원거리 회피로 수렴합니다.
+        proto = MLPPolicy.load(init)
+        hidden = proto.hidden
+        theta = proto.flat.copy()
+        print(f"초기화: {init} (hidden={hidden}, {theta.size} params)", flush=True)
+    else:
+        proto = MLPPolicy(hidden=hidden, seed=seed)
+        theta = proto.flat.copy() * 0.1      # 작은 초기값에서 출발
     n_par = theta.size
     history = []
     pool = Pool(workers) if workers > 1 else None
     t0 = time.time()
 
     for gen in range(1, generations + 1):
-        # --- alpha 커리큘럼: 초반엔 BT 비중을 높여 탐색을 유도 ---
+        # --- alpha 배정 ---
+        # 기본(grid): 매 세대 평가 격자 {0.25, 0.5, 0.75, 1.0} 를 한 판씩.
+        #   정책 하나가 전 구간에서 동작해야 하므로 모든 alpha 를 끝까지 학습합니다.
+        #   (예전 커리큘럼은 후반에 alpha>=0.9 만 뽑아 alpha=0.25 정책이 사실상
+        #    미학습 상태로 평가되는 문제가 있었습니다.)
+        # curriculum: 초반엔 BT 비중을 높여 탐색을 유도하는 옛 방식 (비교용).
         if alpha_curriculum:
             a_lo = min(0.9, 0.15 + 0.85 * gen / max(1, generations * 0.7))
+            alphas = rng.uniform(a_lo, 1.0, episodes)
+            alphas[-1] = 1.0
         else:
-            a_lo = 0.0
-        alphas = rng.uniform(a_lo, 1.0, episodes)
-        alphas[-1] = 1.0                      # 순수 RL 구간을 항상 1개 포함
+            a_lo = float(min(ALPHA_GRID))
+            alphas = np.array([ALPHA_GRID[i % len(ALPHA_GRID)] for i in range(episodes)])
         # 세대 내 모든 후보가 **같은 시드**를 쓰도록 고정 (분산 감소, 매우 중요)
         seeds = rng.integers(0, 10 ** 6, episodes)
-        opps = rng.choice(opponents, episodes)
+        opps = np.array([opponents[i % len(opponents)] for i in range(episodes)])
+        rng.shuffle(opps)
 
         eps = rng.normal(0.0, 1.0, (pop // 2, n_par))
         eps = np.concatenate([eps, -eps], axis=0)      # 미러 샘플링
@@ -95,25 +114,60 @@ def train(generations=200, pop=40, sigma=0.08, lr=0.03, episodes=4,
                 else np.array([_rollout_fitness(j) for j in jobs]))
 
         grad = (_rank_transform(fits)[:, None] * eps).mean(axis=0) / sigma
-        theta = theta + lr * grad
+        theta_new = theta + lr_eff * grad
+
+        # --- 수용 검사 (백트래킹) ---
+        # 순위 정규화 기울기는 신호가 약해도 크기가 일정해서, 그대로 누적하면
+        # 가중치가 lr/(sigma*sqrt(pop)) 씩 무작위 행보를 합니다. 복제 초기화한
+        # 정책이 100세대 만에 지워지는 것을 실제로 겪었습니다. 그래서 갱신 전후의
+        # theta 를 **같은 시드**로 평가해(대응 비교라 잡음이 작음) 나빠지면 거부하고
+        # 보폭을 줄입니다. 수용되면 보폭을 서서히 원래대로 되돌립니다.
+        if accept_test:
+            chk = [(theta, hidden, seeds, alphas, opps, bt_version),
+                   (theta_new, hidden, seeds, alphas, opps, bt_version)]
+            f_old, f_new = (pool.map(_rollout_fitness, chk) if pool
+                            else [_rollout_fitness(j) for j in chk])
+            accepted = f_new >= f_old - accept_tol
+            if accepted:
+                theta = theta_new
+                lr_eff = min(lr, lr_eff * 1.15)
+            else:
+                lr_eff = max(lr * 0.25, lr_eff * 0.7)
+            n_accept += int(accepted)
+        else:
+            f_old, f_new, accepted = float("nan"), float("nan"), True
+            theta = theta_new
 
         history.append(dict(gen=gen, fit_mean=float(fits.mean()),
                             fit_max=float(fits.max()), alpha_lo=float(a_lo),
+                            fit_theta=float(f_new if accepted else f_old),
+                            accepted=bool(accepted), lr_eff=float(lr_eff),
                             elapsed=time.time() - t0))
         if gen % max(1, generations // 20) == 0 or gen == 1:
             print(f"[gen {gen:4d}] fit mean={fits.mean():8.3f} "
-                  f"max={fits.max():8.3f} alpha>={a_lo:.2f} "
+                  f"max={fits.max():8.3f} theta={history[-1]['fit_theta']:8.3f} "
+                  f"accept={n_accept}/{gen} lr={lr_eff:.4f} alpha>={a_lo:.2f} "
                   f"({time.time()-t0:.0f}s)", flush=True)
 
         if gen % checkpoint_every == 0 or gen == generations:
             p = MLPPolicy(hidden=hidden, params=theta)
             p.save(os.path.join(outdir, f"ckpt_{tag}_gen{gen:05d}.npz"))
+            _dump_history(outdir, tag, history)        # 학습 중에도 뷰어가 읽도록
 
     if pool:
         pool.close(); pool.join()
-    with open(os.path.join(outdir, f"history_{tag}.json"), "w") as f:
-        json.dump(history, f, indent=2)
+    history[-1]["final"] = True
+    _dump_history(outdir, tag, history)
     return theta, history
+
+
+def _dump_history(outdir: str, tag: str, history: list) -> None:
+    """원자적 저장: 뷰어가 쓰는 도중의 파일을 읽지 않도록 임시 파일 후 교체."""
+    path = os.path.join(outdir, f"history_{tag}.json")
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(history, f, indent=2)
+    os.replace(tmp, path)
 
 
 def main():
@@ -129,12 +183,20 @@ def main():
     ap.add_argument("--outdir", type=str, default="results/es")
     ap.add_argument("--checkpoint-every", type=int, default=20)
     ap.add_argument("--tag", type=str, default=None)
+    ap.add_argument("--alpha-curriculum", action="store_true",
+                    help="옛 방식(alpha 하한 상승 커리큘럼). 기본은 고정 격자.")
+    ap.add_argument("--init", type=str, default=None,
+                    help="초기 가중치 체크포인트 (pretrain_bc.py 출력). 권장.")
+    ap.add_argument("--no-accept-test", action="store_true",
+                    help="수용 검사(백트래킹) 끄기. 순수 OpenAI-ES 갱신 (비교용).")
     args = ap.parse_args()
     tag = args.tag or f"seed{args.seed}"
     train(generations=args.generations, pop=args.pop, sigma=args.sigma,
           lr=args.lr, episodes=args.episodes, seed=args.seed,
           workers=args.workers, bt_version=args.bt_version,
-          outdir=args.outdir, checkpoint_every=args.checkpoint_every, tag=tag)
+          outdir=args.outdir, checkpoint_every=args.checkpoint_every, tag=tag,
+          alpha_curriculum=args.alpha_curriculum, init=args.init,
+          accept_test=not args.no_accept_test)
 
 
 if __name__ == "__main__":

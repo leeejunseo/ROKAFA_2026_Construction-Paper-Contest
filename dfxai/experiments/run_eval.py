@@ -126,7 +126,7 @@ def run(conditions, opponents=(2, 3), n_seeds=100, workers=1,
                             obs=np.concatenate(obs_l, axis=0),
                             act=np.concatenate(act_l, axis=0))
 
-    with open(os.path.join(outdir, "manifest.json"), "w") as f:
+    with open(os.path.join(outdir, "manifest.json"), "w", encoding="utf-8") as f:
         json.dump({"conditions": conditions, "opponents": list(opponents),
                    "n_seeds": n_seeds, "config": config_dump()}, f,
                   indent=2, ensure_ascii=False)

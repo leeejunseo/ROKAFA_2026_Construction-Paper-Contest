@@ -13,13 +13,14 @@
   - 최소이격 침범
 """
 from __future__ import annotations
+import math
 import numpy as np
 from dataclasses import dataclass, field
 from typing import Callable, Optional
 
 from .config import AircraftConfig, EngagementConfig, ObsConfig, ACTION_DIM
 from .dynamics import AircraftState, step as dyn_step, max_load_factor
-from .geometry import build_obs, relative_geometry
+from .geometry import build_obs, relative_geometry, los_range, boresight_angle
 
 
 def action_to_command(a: np.ndarray, state: AircraftState,
@@ -34,18 +35,17 @@ def action_to_command(a: np.ndarray, state: AircraftState,
     "BT는 원래 트리라서 설명하기 쉬운 것 아니냐"는 반론이
     행동공간 차이 때문이라는 가능성은 배제됩니다.
     """
-    a = np.clip(np.asarray(a, dtype=np.float64), -1.0, 1.0)
+    a0 = min(max(float(a[0]), -1.0), 1.0)
+    a1 = min(max(float(a[1]), -1.0), 1.0)
+    a2 = min(max(float(a[2]), -1.0), 1.0)
     n_avail = max_load_factor(state.v, state.h, ac)
-    mu_c = a[0] * ac.bank_cmd_limit
-    n_c = 0.5 * (a[1] + 1.0) * n_avail
-    thr_c = 0.5 * (a[2] + 1.0)
-    return np.array([mu_c, n_c, thr_c])
+    return (a0 * ac.bank_cmd_limit, 0.5 * (a1 + 1.0) * n_avail, 0.5 * (a2 + 1.0))
 
 
 def cone_halfangle(t_frac: float, ec: EngagementConfig) -> float:
     """명중 원추 반각. 대회 규정처럼 시간이 갈수록 넓어집니다."""
     d = ec.cone_deg_start + (ec.cone_deg_end - ec.cone_deg_start) * t_frac
-    return np.deg2rad(d)
+    return math.radians(d)
 
 
 # 궤적 기록 1프레임의 열 이름. viz/acmi.py 가 이 순서를 그대로 씁니다.
@@ -187,21 +187,22 @@ class DogfightEnv:
             dyn_step(self.red, cmd_r, ec.dt_sim, ac)
             self.t += ec.dt_sim
 
-            g = relative_geometry(self.blue, self.red)
-            r = g["r"]
+            lx, ly, lz, r = los_range(self.blue, self.red)
             t_frac = min(1.0, self.t / ec.episode_time)
             cone = cone_halfangle(t_frac, ec)
 
             # --- WEZ 판정 (기총) ---
+            # 전체 기하 대신 거리와 총각만 계산합니다 (핫루프).
             in_range = ec.gun_range_min <= r <= ec.gun_range_max
-            fire_b = bool(in_range and g["ata_total"] <= cone)
+            fire_b = bool(in_range and
+                          boresight_angle(self.blue, lx, ly, lz, r) <= cone)
             if fire_b:
                 dmg = ec.gun_damage_rate * ec.dt_sim
                 self.red.hp -= dmg
                 self._dmg_dealt += dmg
                 self._wez_b += ec.dt_sim
-            g_r = relative_geometry(self.red, self.blue)
-            fire_r = bool(in_range and g_r["ata_total"] <= cone)
+            fire_r = bool(in_range and
+                          boresight_angle(self.red, -lx, -ly, -lz, r) <= cone)
             if fire_r:
                 dmg = ec.gun_damage_rate * ec.dt_sim
                 self.blue.hp -= dmg

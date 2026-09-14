@@ -43,10 +43,24 @@ def parse_cond(name: str) -> dict:
                 budget=int(b), alpha=float(a), bt_version=-1)
 
 
+def read_json(path: str) -> dict:
+    """manifest 는 과거 실행에서 시스템 코드페이지(cp949)로 저장됐을 수 있습니다."""
+    for enc in ("utf-8", "cp949"):
+        try:
+            with open(path, encoding=enc) as f:
+                return json.load(f)
+        except UnicodeDecodeError:
+            continue
+    with open(path, encoding="utf-8", errors="replace") as f:
+        return json.load(f)
+
+
 def load_merged(outdir: str) -> pd.DataFrame:
     m = pd.read_csv(os.path.join(outdir, "merged.csv"))
     meta = pd.DataFrame([parse_cond(c) for c in m["cond"]])
-    return pd.concat([m.reset_index(drop=True), meta], axis=1)
+    # report.py 의 family 열은 parse_cond 가 다시 만들므로 중복을 피해 버립니다.
+    m = m.drop(columns=["family"], errors="ignore").reset_index(drop=True)
+    return pd.concat([m, meta], axis=1)
 
 
 # ------------------------------------------------------------ 학습곡선
@@ -57,7 +71,7 @@ def plot_learning_curve(esdir: str, path: str):
     fig, ax = plt.subplots(figsize=(6.4, 3.8))
     for f in files:
         tag = os.path.basename(f)[len("history_"):-len(".json")]
-        h = pd.DataFrame(json.load(open(f)))
+        h = pd.DataFrame(read_json(f))
         ax.plot(h["gen"], h["fit_mean"], lw=1.2, label=f"{tag} (pop. mean)")
         ax.plot(h["gen"], h["fit_max"], lw=0.8, ls="--", alpha=0.6,
                 label=f"{tag} (pop. max)")
@@ -155,28 +169,66 @@ def plot_tradeoff_families(m: pd.DataFrame, path: str):
 
 
 # ------------------------------------------------------------ 대표 궤적
-def plot_representative_trajectories(outdir: str, figdir: str, seed: int = 10_000,
-                                     opponent: int = 3, max_conds: int = 8):
-    """manifest 의 조건 중 BT 3종 + 각 계열의 최종 예산 조건을 골라 궤적을 그립니다.
+def pick_representative(conds: list[dict]) -> list[dict]:
+    """BT 3종 + 최대 예산의 학습 조건을 alpha 별로 하나씩(학습 시드 0 우선).
 
-    같은 seed 를 쓰므로 초기조건이 동일하고, 조건 간 차이가 곧 정책 차이입니다.
+    합성 데이터처럼 실제 정책이 없는 실행이면 빈 목록을 돌려줍니다.
     """
-    man = json.load(open(os.path.join(outdir, "manifest.json"), encoding="utf-8"))
-    conds = man.get("conditions")
-    if not conds:                      # 합성 데이터 등 실제 정책이 없는 실행
-        return []
     picked = [c for c in conds if c["kind"] == "bt"]
     learned = [c for c in conds if c["kind"] != "bt"]
     if learned:
         maxb = max(c.get("budget", 0) for c in learned)
-        top = [c for c in learned if c.get("budget", 0) == maxb]
+        top = sorted([c for c in learned if c.get("budget", 0) == maxb],
+                     key=lambda c: (c["alpha"], c.get("train_seed", 0)))
         seen = set()
-        for c in sorted(top, key=lambda c: c["alpha"]):
-            key = c["alpha"]
-            if key not in seen:
-                picked.append(c); seen.add(key)
+        for c in top:
+            if c["alpha"] not in seen:
+                picked.append(c); seen.add(c["alpha"])
+    return picked
+
+
+def choose_representative_seed(conds: list[dict], opponent: int = 3,
+                               seed0: int = 10_000, n_try: int = 40) -> int:
+    """모든 대표 조건에서 교전이 충분히 오래 이어지는 시드를 고릅니다.
+
+    정면 조우 6초 만에 충돌로 끝나는 시드는 그림으로 쓸모가 없습니다.
+    후보 시드마다 조건별 교전 길이의 최솟값을 구해 그 값이 가장 큰 시드를
+    택합니다(같은 시드 = 같은 초기조건이므로 조건 간 비교가 공정합니다).
+    """
+    from ..agents.bt import BTPolicy
+    pols = [(build_condition(c), float(c.get("alpha", 1.0 if c["kind"] == "rl" else 0.0)))
+            for c in conds]
+    best, best_seed = -1.0, seed0
+    for s in range(seed0, seed0 + n_try):
+        worst = np.inf
+        for pol, alpha in pols:
+            res = run_episode(pol, BTPolicy(version=opponent), seed=s, alpha=alpha)
+            d = res.duration if res.outcome != "collision" else 0.0
+            worst = min(worst, d)
+            if worst <= best:
+                break
+        if worst > best:
+            best, best_seed = worst, s
+    return best_seed
+
+
+def plot_representative_trajectories(outdir: str, figdir: str, seed: int | None = None,
+                                     opponent: int = 3, max_conds: int = 8):
+    """manifest 의 조건 중 BT 3종 + 각 계열의 최종 예산 조건을 골라 궤적을 그립니다.
+
+    같은 seed 를 쓰므로 초기조건이 동일하고, 조건 간 차이가 곧 정책 차이입니다.
+    seed=None 이면 choose_representative_seed() 로 자동 선택합니다.
+    """
+    man = read_json(os.path.join(outdir, "manifest.json"))
+    picked = pick_representative(man.get("conditions") or [])[:max_conds]
+    if not picked:
+        return []
+    if seed is None:
+        seed = choose_representative_seed(picked, opponent)
+        with open(os.path.join(figdir, "representative_seed.txt"), "w") as f:
+            f.write(f"{seed}\n")
     out = []
-    for c in picked[:max_conds]:
+    for c in picked:
         pol = build_condition(c)
         alpha = float(c.get("alpha", 1.0 if c["kind"] == "rl" else 0.0))
         env = DogfightEnv(record_traj=True)
@@ -194,7 +246,7 @@ def plot_representative_trajectories(outdir: str, figdir: str, seed: int = 10_00
     return out
 
 
-def make_figures(outdir: str, esdir: str = "results/es", traj_seed: int = 10_000,
+def make_figures(outdir: str, esdir: str = "results/es", traj_seed: int | None = None,
                  traj_opponent: int = 3) -> list[str]:
     figdir = os.path.join(outdir, "paper_figs")
     os.makedirs(figdir, exist_ok=True)
@@ -214,7 +266,8 @@ def main():
     ap = argparse.ArgumentParser(description="논문 그림 생성")
     ap.add_argument("--outdir", default="results/main")
     ap.add_argument("--esdir", default="results/es")
-    ap.add_argument("--traj-seed", type=int, default=10_000)
+    ap.add_argument("--traj-seed", type=int, default=None,
+                    help="대표 궤적 시드. 생략하면 자동 선택 (paper_figs/representative_seed.txt 에 기록)")
     ap.add_argument("--traj-opponent", type=int, default=3)
     a = ap.parse_args()
     for p in make_figures(a.outdir, a.esdir, a.traj_seed, a.traj_opponent):

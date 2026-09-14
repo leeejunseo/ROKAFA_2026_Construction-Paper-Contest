@@ -13,10 +13,22 @@
   2) 조종 입력이 곧 상위 지령이므로, RL이 조종간을 직접 흔드는 대신
      "얼마나 기울이고 몇 G로 당길지"만 결정하면 됩니다.
      탐색 난이도가 크게 낮아집니다.
+
+구현 메모: step() 은 교전당 수천 번 불리는 핫루프라 numpy 대신 math 스칼라
+연산으로 작성했습니다. 수식은 동일하며 결과는 반올림 수준에서 같습니다.
 """
 from __future__ import annotations
+import math
 import numpy as np
 from .config import AircraftConfig, G0, RHO0
+
+_PI = math.pi
+_TWO_PI = 2.0 * math.pi
+_GAMMA_LIM = math.pi / 2.2
+
+
+def _clip(x: float, lo: float, hi: float) -> float:
+    return lo if x < lo else (hi if x > hi else x)
 
 
 def air_density(h: float) -> float:
@@ -38,7 +50,7 @@ def max_load_factor(v: float, h: float, cfg: AircraftConfig) -> float:
     """
     q = 0.5 * air_density(h) * v * v          # 동압
     n_lift = q * cfg.wing_area * cfg.cl_max / (cfg.mass * G0)
-    return float(np.clip(min(n_lift, cfg.n_max_struct), 0.0, cfg.n_max_struct))
+    return _clip(min(n_lift, cfg.n_max_struct), 0.0, cfg.n_max_struct)
 
 
 class AircraftState:
@@ -66,9 +78,9 @@ class AircraftState:
     @property
     def vel(self) -> np.ndarray:
         """속도 벡터 (NED 아님, h가 위쪽 양수)."""
-        cg = np.cos(self.gamma)
+        cg = math.cos(self.gamma)
         return self.v * np.array(
-            [cg * np.cos(self.psi), cg * np.sin(self.psi), np.sin(self.gamma)]
+            [cg * math.cos(self.psi), cg * math.sin(self.psi), math.sin(self.gamma)]
         )
 
     @property
@@ -82,7 +94,7 @@ class AircraftState:
         return s
 
 
-def step(state: AircraftState, cmd: np.ndarray, dt: float, cfg: AircraftConfig) -> None:
+def step(state: AircraftState, cmd, dt: float, cfg: AircraftConfig) -> None:
     """지령 cmd = [mu_c(rad), n_c(g), thr_c(0..1)] 로 dt초 전진 적분 (제자리 수정).
 
     적분은 명시적 오일러입니다. dt=0.05s에서 충분히 안정적이며,
@@ -91,10 +103,10 @@ def step(state: AircraftState, cmd: np.ndarray, dt: float, cfg: AircraftConfig) 
     mu_c, n_c, thr_c = float(cmd[0]), float(cmd[1]), float(cmd[2])
 
     # --- 지령 포화 ---
-    mu_c = float(np.clip(mu_c, -cfg.bank_cmd_limit, cfg.bank_cmd_limit))
+    mu_c = _clip(mu_c, -cfg.bank_cmd_limit, cfg.bank_cmd_limit)
     n_avail = max_load_factor(state.v, state.h, cfg)
-    n_c = float(np.clip(n_c, cfg.n_min_struct, n_avail))
-    thr_c = float(np.clip(thr_c, 0.0, 1.0))
+    n_c = _clip(n_c, cfg.n_min_struct, n_avail)
+    thr_c = _clip(thr_c, 0.0, 1.0)
 
     # --- 1차 지연 응답 ---
     state.mu += (mu_c - state.mu) * min(1.0, dt / cfg.tau_bank)
@@ -112,13 +124,14 @@ def step(state: AircraftState, cmd: np.ndarray, dt: float, cfg: AircraftConfig) 
 
     # --- 운동방정식 ---
     v = max(state.v, 1.0)
-    dv = (thrust - drag) / cfg.mass - G0 * np.sin(state.gamma)
-    dgamma = (G0 / v) * (state.n * np.cos(state.mu) - np.cos(state.gamma))
-    dpsi = (G0 / v) * state.n * np.sin(state.mu) / max(np.cos(state.gamma), 0.2)
+    sg, cg = math.sin(state.gamma), math.cos(state.gamma)
+    dv = (thrust - drag) / cfg.mass - G0 * sg
+    dgamma = (G0 / v) * (state.n * math.cos(state.mu) - cg)
+    dpsi = (G0 / v) * state.n * math.sin(state.mu) / max(cg, 0.2)
 
-    state.x += v * np.cos(state.gamma) * np.cos(state.psi) * dt
-    state.y += v * np.cos(state.gamma) * np.sin(state.psi) * dt
-    state.h += v * np.sin(state.gamma) * dt
-    state.v = float(np.clip(v + dv * dt, cfg.v_min, cfg.v_max))
-    state.gamma = float(np.clip(state.gamma + dgamma * dt, -np.pi / 2.2, np.pi / 2.2))
-    state.psi = float((state.psi + dpsi * dt + np.pi) % (2 * np.pi) - np.pi)
+    state.x += v * cg * math.cos(state.psi) * dt
+    state.y += v * cg * math.sin(state.psi) * dt
+    state.h += v * sg * dt
+    state.v = _clip(v + dv * dt, cfg.v_min, cfg.v_max)
+    state.gamma = _clip(state.gamma + dgamma * dt, -_GAMMA_LIM, _GAMMA_LIM)
+    state.psi = (state.psi + dpsi * dt + _PI) % _TWO_PI - _PI

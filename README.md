@@ -29,8 +29,15 @@
 커버합니다. 학습 런이 15개에서 3개로 줄어듭니다. 초반에 α를 낮게 두면
 BT가 탐색을 이끄는 자동 커리큘럼이 됩니다.
 
-속도는 교전 1회당 약 0.3초(단일 코어)입니다. 의존성은 numpy·pandas·
-scipy·scikit-learn·matplotlib뿐이고, torch 없이도 학습이 돌아갑니다.
+속도는 교전 1회당 약 0.02초(단일 코어)입니다. 기하·역학 핫루프를 numpy
+스칼라 호출 대신 `math` 연산으로 작성해 얻은 수치이며, 결과는 반올림
+수준에서 동일합니다. 의존성은 numpy·pandas·scipy·scikit-learn·matplotlib뿐이고,
+torch 없이도 학습이 돌아갑니다.
+
+노트북 CPU(P코어 2 + E코어 8 같은 저전력 칩)에서는 워커를 늘려도 처리량이
+약 2배에서 멈춥니다. 그런 환경에서는 `--workers 10` 정도가 상한이고, 학습
+시간은 시드당 15분 안팎입니다. anaconda 환경이면 `OMP_NUM_THREADS=1
+MKL_NUM_THREADS=1` 을 먼저 설정하십시오(워커마다 BLAS 스레드가 붙는 것을 막음).
 
 ---
 
@@ -43,24 +50,50 @@ pip install -r requirements.txt
 python -m dfxai.experiments.make_synthetic --outdir results/dryrun
 python -m dfxai.analysis.report --outdir results/dryrun
 
-# (1) 학습. torch 불필요. 코어 수만큼 --workers 를 올리세요.
-python -m dfxai.rl.train_es --generations 400 --pop 48 --episodes 4 \
-       --workers 16 --checkpoint-every 50 --seed 0 --tag seed0
+# (1a) 행동 복제 초기화 — BT-v2 로그에 MLP 를 회귀 (torch 필요, 1분)
+#      무작위 초기화로 ES 를 돌리면 원거리 회피로 수렴합니다 (5.5 절).
+python -m dfxai.rl.pretrain_bc --teacher 2 --out results/es/bc_init.npz
 
-# (2) 본실험 (진영 교대 짝지은 평가)
+# (1) ES 미세조정. 학습 시드 3개를 권장합니다(시드 간 분산 보고용).
+export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1
+for s in 0 1 2; do
+  python -m dfxai.rl.train_es --generations 300 --pop 32 --episodes 8 \
+         --sigma 0.05 --lr 0.01 --workers 10 --checkpoint-every 50 \
+         --seed $s --tag seed$s --init results/es/bc_init.npz
+done
+
+# (1b) 학습 진행 뷰어 — 다른 터미널에서. results/es/monitor.html 을 브라우저로 열어 두면
+#      60초마다 갱신되고, 체크포인트마다 BT 상대 실제 점수까지 찍어 줍니다.
+python -m dfxai.rl.monitor --esdir results/es --watch 60
+
+# (2) 본실험 (진영 교대 짝지은 평가). 예산 4점(복제본 0 + 100/200/300세대) x 시드 3개 x alpha 4점
 python -m dfxai.experiments.run_eval \
-       --ckpts results/es/ckpt_seed0_gen00100.npz \
-               results/es/ckpt_seed0_gen00250.npz \
-               results/es/ckpt_seed0_gen00400.npz \
+       --ckpts results/es/bc_init.npz \
+               results/es/ckpt_seed{0,1,2}_gen00100.npz \
+               results/es/ckpt_seed{0,1,2}_gen00200.npz \
+               results/es/ckpt_seed{0,1,2}_gen00300.npz \
        --alphas 0.25 0.5 0.75 1.0 --opponents 2 3 \
-       --n-seeds 100 --workers 16 --outdir results/main
+       --n-seeds 100 --workers 10 --outdir results/main
 
-# (3) 분석 — 표와 그림이 한 번에 나옵니다
+# (3) 분석 — 기본 표·그림
 python -m dfxai.analysis.report --outdir results/main
 
-# (4) 교전을 눈으로 보기 — Tacview 로 재생할 .acmi 생성
+# (4) 논문용 그림(학습곡선·예산 스윕·집계 파레토·대표 궤적)과 결과 문서
+python -m dfxai.analysis.figures --outdir results/main --esdir results/es
+python -m dfxai.analysis.paper   --outdir results/main --esdir results/es \
+                                 --out paper/results_auto.md
+
+# (5) 교전을 눈으로 보기 — Tacview 로 재생할 .acmi 생성
 python -m dfxai.viz.replay --blue bt:2 --red bt:3 --seeds 0 1 2
 ```
+
+논문 쓰기는 `paper/` 폴더에서 시작하십시오.
+
+| 파일 | 용도 |
+|---|---|
+| `paper/논문_골격.md` | 절별 주장·근거 표·그림 배치·반론 대응까지 적은 원고 설계도 |
+| `paper/results_auto.md` | 실험 결과에서 자동 생성되는 표·상관분석·규칙 예시·설정 부록 (숫자는 여기서 복사) |
+| `paper/개발노력_기록.md` | BT/RL 개발 시간 기록표 (반드시 채울 것) |
 
 PPO 경로를 쓰려면 `pip install gymnasium stable-baselines3 torch` 후
 `python -m dfxai.rl.train_ppo --timesteps 5000000 --n-envs 16`.
@@ -81,8 +114,10 @@ dfxai/
     bt.py                BT 3종 (Selector/Sequence 노드, 노드 수 측정 가능)
     hybrid.py            MLPPolicy + HybridPolicy (혼합 다이얼)
   rl/
-    shaping.py           포텐셜 기반 보상 셰이핑
-    train_es.py          진화전략 학습기 (numpy 전용)
+    shaping.py           포텐셜 기반 보상 셰이핑 (설계 이력 포함)
+    pretrain_bc.py       BT 행동 복제 초기화 (torch)
+    monitor.py           학습 진행 뷰어 (HTML 자동 갱신 + 체크포인트 빠른 평가)
+    train_es.py          진화전략 학습기 (numpy 전용, --init 으로 복제본에서 시작)
     train_ppo.py         Gymnasium 래퍼 + SB3 PPO
   xai/surrogate.py       대리모델 충실도 = 설명가능성 지표
   experiments/
@@ -91,9 +126,16 @@ dfxai/
   analysis/
     stats.py             Wilson 구간·이항검정·Wilcoxon·Holm 보정
     report.py            요약표 + 파레토 곡선 + 그림
+    figures.py           논문 그림: 학습곡선·예산x alpha 스윕·집계 파레토·대표 궤적
+    paper.py             논문용 Markdown 결과 문서 (표·상관분석·규칙 예시·설정 부록)
   viz/
     acmi.py              Tacview ACMI 2.2 내보내기
     replay.py            교전 재생 CLI
+    plots.py             교전 1회 정적 그림 (평면 궤적·고도·거리/ATA)
+paper/
+  논문_골격.md           원고 설계도
+  results_auto.md        자동 생성 결과 문서 (실험 후 생성됨)
+  개발노력_기록.md       개발 시간 기록표
 ```
 
 ### 3.1 교전 재생 (Tacview)
@@ -176,13 +218,24 @@ D\*가 작을수록 더 단순한 규칙으로 설명 가능합니다. 보조로
 
 ### 5.2 BT 3종에서 이미 트레이드오프가 관측됩니다
 
-| 모델 | 노드 수 | 승률(BT-v2 기준) | 하드덱 위반 | 과G 위반 |
+(100시드 × 진영 교대, 상대 BT-v2. 최신 수치는 `paper/results_auto.md` 표 1 이 기준입니다.)
+
+| 모델 | 노드 수 | 점수(vs BT-v2) | 하드덱 위반 | 과G 위반 |
 |---|---|---|---|---|
-| BT-v1 수평 추격 | 5 | 0.233 | 0.0021 | 0.0000 |
-| BT-v2 3차원 최대선회 | 2 | 0.500 | 0.0507 | 0.0568 |
-| BT-v3 3차원+안전규칙 | 8 | 0.329 | 0.0000 | 0.0000 |
+| BT-v1 수평 추격 | 8 | 0.25 | 0.002 | 0.000 |
+| BT-v2 3차원 최대선회 | 5 | 0.500 | 0.023 | 0.120 |
+| BT-v3 3차원+안전규칙 | 11 | 0.16 (순수승률) / 0.34 (점수) | 0.000 | 0.000 |
 
 성능 서열(v2 > v3 > v1)과 규칙 준수 서열(v3 > v1 > v2)이 **정반대**입니다.
+
+**정면 합류 회피 노드.** 처음 설계에는 없었는데, 순수추격 BT 끼리 붙이면 정면
+조우에서 서로를 향해 직진하다 **교전의 45~53%가 공중충돌**로 끝났습니다.
+실제 BFM 에서 합류 시 측방 이격 유지는 기본 규칙이므로, 세 BT 모두의 최우선
+노드로 `merge_avoidance`(거리 1 km 이내·접근률 200 m/s 초과·서로 정면이면 상대
+반대쪽으로 75° 뱅크)를 넣었습니다. 충돌은 3~10% 로 떨어졌고 BT-v2 대 BT-v3
+교전의 58% 가 격추로 끝납니다. 노드 수(8/5/11)는 이 노드 3개를 포함한 값입니다.
+논문에는 이 이력을 그대로 쓰십시오 — "환경이 충돌 회피를 강제하지 않으면
+학습 정책이 배우는 것은 전술이 아니라 들이받는 상대 피하기"라는 관찰도 함께.
 RL을 한 줄도 돌리지 않은 상태에서 "규칙을 지키게 하면 성능을 내준다"는
 관계가 이미 관측된 것입니다. **RL이 기대만큼 안 나와도 논문이 성립한다**는
 보험이 하나 더 생긴 셈입니다.
@@ -218,6 +271,61 @@ R²가 자동으로 1이 되고, 단순 평균을 쓰면 충실도가 부풀려�
 
 ---
 
+### 5.5 보상 해킹을 한 번 겪었습니다 — 1차 학습 결과는 논문에 쓰지 마세요
+
+1차 적합도(포텐셜 2.0 × 평균 Φ + 승패)로 400세대 학습한 정책은 **상대와
+6~9 km 떨어져 고도 5~8 km 로 올라가 기수만 상대 쪽으로 둔 채 도망**다녔습니다.
+WEZ 체류 0초, 피해 0, 시간종료 100%. 원거리에서도 ATA 가 작고 에너지 우위가
+커서 포텐셜만으로 적합도 1.5~2.0 을 챙길 수 있었기 때문입니다. 점수 0.38 은
+"무승부 77% × 0.5" 였고, 학습 예산을 늘려도 아무것도 변하지 않았습니다.
+
+그래서 `rl/shaping.py` 를 다음과 같이 바꿨습니다(파일 상단 설계 이력 참조).
+기하 항에 근접 가중을 곱해 사거리 밖에서는 포텐셜이 사라지게 하고, 적합도에서
+포텐셜 비중을 0.5 로 줄이는 대신 WEZ 체류·피해량 비중을 키우고, 양측 무피해
+시간종료에 −8 벌점을 뒀습니다. 또 α 커리큘럼(후반 α≥0.9 만 학습)을 버리고 매
+세대 α∈{0.25, 0.5, 0.75, 1.0} 을 한 판씩 고정으로 돌립니다 — 옛 방식에서는
+α=0.25 정책이 사실상 미학습 상태로 평가되어 점수 0.14 가 나왔습니다.
+
+1차 결과는 `results/es_v1_evasive/`, `results/prelim_v1_evasive/` 에 보관돼
+있습니다. 논문의 '방법' 또는 부록에 실패 사례로 한 문단 쓰기 좋은 재료입니다.
+
+학습이 실제로 되는지는 적합도가 아니라 **`python -m dfxai.rl.monitor` 의
+실제 점수 곡선**으로 판단하십시오. 셰이핑 적합도는 이번처럼 오르면서도
+아무것도 안 배울 수 있습니다.
+
+**2차 시도도 실패했습니다.** 적합도를 고쳐도 무작위 초기화에서는 여전히
+회피로 수렴했습니다(100세대 정책의 평균 거리 17 km). 교전을 시도하면 BT-v2 에게
+격추당해 −30, 도망가면 −9 이므로 ES 탐색이 싸우는 정책을 찾을 확률이 사실상
+0 입니다 — 희소·고분산 보상에서 진화전략의 알려진 한계입니다.
+(`results/es_v2_random_init/` 보관.)
+
+**해결: 행동 복제 초기화.** `rl/pretrain_bc.py` 가 BT-v2 의 (관측, 행동) 로그
+16만 샘플에 MLP 를 회귀시킵니다(뱅크 채널 R² 0.95). 복제본은 BT-v2 상대 0.50,
+BT-v3 상대 0.83 으로 원본과 거의 같게 싸웁니다. ES 는 이 가중치에서 출발하고,
+학습 예산 축은 "복제본에서 얼마나 멀어졌나"가 됩니다. α=1.0 정책은 여전히 MLP
+만 실행하는 블랙박스이므로 논문의 정의는 유지되며, **초기화 방법을 방법 절에
+반드시 명시**하십시오. 이 설정에서는 "학습 초기에는 BT 와 설명가능성이 비슷하다가
+성능이 갈리면서 D\* 가 벌어지는가"가 곧바로 시험됩니다.
+
+**3차 시도: ES 가 복제본을 지웠습니다.** 복제 초기화 후 기존 ES 갱신(σ 0.05,
+lr 0.02)을 돌리자 점수가 0.50 → 100세대 0.41 → 200세대 0.00 으로 무너지고
+개체군 전체가 같은 적합도(−13.4)로 붕괴했습니다. 순위 정규화 기울기는 신호가
+약해도 크기가 일정하므로, 가중치가 매 세대 lr/(σ√pop) ≈ 0.06 씩 **무작위
+행보**를 합니다. 가중치 크기(≈0.3)에 비해 커서 100세대면 복제본이 지워집니다.
+무작위 초기화 때는 잃을 것이 없어 드러나지 않던 문제입니다.
+(`results/es_v3_bc_randomwalk/` 보관.)
+
+**해결: 수용 검사(백트래킹).** 갱신 전후의 θ 를 **같은 시드**로 평가해(대응
+비교라 잡음이 작음) 나빠지면 갱신을 거부하고 보폭을 0.7배로 줄이며, 수용되면
+서서히 되돌립니다(`train_es.py`, `--no-accept-test` 로 끌 수 있음). 후보당
+교전도 4 → 8 (α 격자 × 2시드)로 늘려 적합도 잡음을 줄였습니다. 10세대 시험에서
+수용률 50%, 복제본 성능 유지가 확인됐습니다. 논문에는 "OpenAI-ES 에 수용 검사를
+추가한 변형"으로 명시하십시오.
+
+하이브리드의 뱅크 혼합도 이때 고쳤습니다. 뱅크는 각도(±1 = ±180°)라 선형 평균이
+−170° 와 +170° 를 섞어 0° 를 내는데, 이는 양력벡터를 정반대로 돌립니다. 이제
+뱅크 채널만 원형 평균(sin/cos 가중 합의 atan2)을 씁니다.
+
 ## 6. 논문 설계상 권고
 
 **학습 예산을 독립변수로 쓰세요.** 체크포인트를 수렴 시점 하나에서만
@@ -248,7 +356,20 @@ R²가 자동으로 1이 되고, 단순 평균을 쓰면 충실도가 부풀려�
 
 ---
 
-## 7. 실험을 시작하기 전 점검
+## 7. 조건 이름 규칙
+
+`run_eval` 이 만드는 조건명은 분석 코드가 그대로 파싱하므로 바꾸지 마십시오.
+
+```
+BT-v2                    행동트리 버전 2
+RL-s0-b400-a1.00         학습시드 0, 예산(세대) 400, alpha 1.0  = 순수 학습 정책
+HYB-s1-b250-a0.50        학습시드 1, 예산 250, alpha 0.5       = 하이브리드
+```
+
+`figures.py` 와 `paper.py` 는 (예산, alpha) 가 같은 조건을 학습 시드에 걸쳐
+평균 ± 표준편차로 집계합니다. 시드가 1개뿐이면 오차막대 없이 점만 찍힙니다.
+
+## 8. 실험을 시작하기 전 점검
 
 `make_synthetic` → `report`를 먼저 돌려 파이프라인을 완성해 두십시오.
 학습이 하루 늦어져도 논문이 멈추지 않게 하는 유일한 방법입니다.
@@ -262,7 +383,7 @@ R²가 자동으로 1이 되고, 단순 평균을 쓰면 충실도가 부풀려�
 
 ---
 
-## 8. 알려진 한계
+## 9. 알려진 한계
 
 * 3자유도 점질량 모델이므로 받음각·옆미끄럼·실속/스핀·무장 탄도를
   모사하지 않습니다. 결론은 이 모델의 범위 안에서만 유효합니다.

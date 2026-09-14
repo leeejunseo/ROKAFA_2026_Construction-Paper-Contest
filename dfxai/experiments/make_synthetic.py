@@ -88,7 +88,7 @@ def generate(outdir: str, n_seeds: int = 100, opponents=(2, 3),
 
     df = pd.DataFrame(rows)
     df.to_csv(os.path.join(outdir, "episodes.csv"), index=False)
-    with open(os.path.join(outdir, "manifest.json"), "w") as f:
+    with open(os.path.join(outdir, "manifest.json"), "w", encoding="utf-8") as f:
         json.dump({"SYNTHETIC": True,
                    "warning": "파이프라인 검증 전용. 논문에 쓰지 말 것.",
                    "config": config_dump()}, f, indent=2, ensure_ascii=False)
