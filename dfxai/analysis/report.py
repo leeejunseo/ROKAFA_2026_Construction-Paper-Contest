@@ -60,6 +60,12 @@ def _sfx() -> str:
 
 
 def _family(cond: str) -> str:
+    if cond.startswith("BTO"):
+        return "BTO"
+    if cond.startswith("SHD"):
+        return "Shield"
+    if cond.startswith("PPO"):
+        return "PPO"
     if cond.startswith("BT"):
         return "BT"
     if cond.startswith("RL"):
@@ -98,7 +104,8 @@ def make_report(outdir: str, target: float = 0.95) -> pd.DataFrame:
 
 def _scatter_by_family(ax, d, xcol, ycol):
     styles = {"BT": ("o", "tab:blue"), "RL": ("s", "tab:red"),
-              "Hybrid": ("^", "tab:green")}
+              "Hybrid": ("^", "tab:green"), "BTO": ("D", "tab:cyan"),
+              "Shield": ("P", "tab:purple"), "PPO": ("v", "tab:orange")}
     for fam, g in d.groupby("family"):
         m, c = styles.get(fam, ("x", "gray"))
         ax.scatter(g[xcol], g[ycol], marker=m, c=c, s=70, label=fam,

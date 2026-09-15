@@ -44,7 +44,7 @@ if _HAS_GYM:
         """
         metadata = {"render_modes": []}
 
-        def __init__(self, opponents=(2, 3), bt_version: int = 2,
+        def __init__(self, opponents=(1, 2), bt_version: int = 2,
                      alpha_lo: float = 0.15, alpha_hi: float = 1.0,
                      gamma: float = 0.997, seed: int = 0):
             super().__init__()
@@ -91,6 +91,12 @@ if _HAS_GYM:
             if done:
                 res = self.env.result()
                 r += terminal_reward(res.winner, res.outcome)
+                # ES 적합도와 같은 취지: 양측 무피해 시간종료(회피 무승부) 벌점,
+                # 규칙 위반 약한 벌점. 스텝 보상 스케일(피해 1점 = 0.02)에 맞춰 축소.
+                if res.outcome == "timeout" and res.damage_dealt == 0.0 and res.damage_taken == 0.0:
+                    r += -8.0
+                v = res.violations_blue
+                r -= 3.0 * (v.get("deck", 0.0) + v.get("over_g", 0.0))
             return self.ob.astype(np.float32), float(r), bool(done), False, {}
 
 
@@ -115,7 +121,7 @@ def sb3_to_mlp(model, out_path: str, hidden=(32, 32)) -> str:
         flat.append(W.ravel()); flat.append(b.ravel())
     flat = np.concatenate(flat)
 
-    p = MLPPolicy(hidden=hidden, params=flat)
+    p = MLPPolicy(hidden=hidden, params=flat, out_act="clip")
     p.save(out_path)
     return out_path
 
@@ -128,6 +134,12 @@ def main():
     ap.add_argument("--bt-version", type=int, default=2)
     ap.add_argument("--outdir", default="results/ppo")
     ap.add_argument("--save-every", type=int, default=250_000)
+    ap.add_argument("--alpha-lo", type=float, default=0.15,
+                    help="alpha 하한 (1.0 이면 BT 보조 없이 순수 학습 = 밑바닥 학습)")
+    ap.add_argument("--alpha-hi", type=float, default=1.0)
+    ap.add_argument("--no-curriculum", action="store_true",
+                    help="alpha 커리큘럼 끄기 (alpha 범위를 고정)")
+    ap.add_argument("--opponents", nargs="*", type=int, default=[1, 2])
     a = ap.parse_args()
 
     if not _HAS_GYM:
@@ -143,7 +155,9 @@ def main():
 
     def mk(i):
         def _f():
-            return DogfightGymEnv(bt_version=a.bt_version, seed=a.seed * 1000 + i)
+            return DogfightGymEnv(opponents=tuple(a.opponents), bt_version=a.bt_version,
+                                  alpha_lo=a.alpha_lo, alpha_hi=a.alpha_hi,
+                                  seed=a.seed * 1000 + i)
         return _f
 
     venv = SubprocVecEnv([mk(i) for i in range(a.n_envs)])
@@ -155,10 +169,12 @@ def main():
     class Curriculum(BaseCallback):
         """학습 진행에 따라 alpha 하한을 끌어올려 BT 의존도를 점차 낮춥니다."""
         def _on_step(self) -> bool:
+            if a.no_curriculum:
+                return True
             if self.n_calls % 5000 == 0:
                 frac = min(1.0, self.num_timesteps / (0.7 * a.timesteps))
-                lo = 0.15 + 0.75 * frac
-                self.training_env.env_method("set_alpha_range", lo, 1.0)
+                lo = a.alpha_lo + (0.9 - a.alpha_lo) * frac
+                self.training_env.env_method("set_alpha_range", lo, a.alpha_hi)
             return True
 
     class Budget(BaseCallback):
@@ -170,6 +186,9 @@ def main():
                 sb3_to_mlp(self.model, p, hidden)
             return True
 
+    log = open(os.path.join(a.outdir, f"train_seed{a.seed}.log"), "a", encoding="utf-8")
+    log.write(f"PPO seed={a.seed} timesteps={a.timesteps} alpha=[{a.alpha_lo},{a.alpha_hi}] "
+              f"curriculum={not a.no_curriculum} opponents={a.opponents}" + chr(10)); log.flush()
     model.learn(total_timesteps=a.timesteps, callback=[Curriculum(), Budget()])
     sb3_to_mlp(model, os.path.join(a.outdir,
                                    f"ckpt_seed{a.seed}_step{a.timesteps:09d}.npz"), hidden)

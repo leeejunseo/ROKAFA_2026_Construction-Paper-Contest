@@ -57,6 +57,11 @@ class EngagementConfig:
     min_separation: float = 150.0   # 이보다 가까우면 근접 위반
     collision_range: float = 60.0   # 이보다 가까우면 공중충돌(양측 패배)
 
+    # 시간종료 처리 규칙 (민감도 분석용).
+    #   "hp"   : 잔여 HP 가 많은 쪽 승 (본실험·대회 규정)
+    #   "draw" : 시간종료는 무조건 무승부 — 격추만 승리로 인정
+    timeout_rule: str = "hp"
+
     # 초기조건 랜덤화 범위
     init_range: tuple = (1500.0, 3500.0)
     init_alt: tuple = (3000.0, 5000.0)

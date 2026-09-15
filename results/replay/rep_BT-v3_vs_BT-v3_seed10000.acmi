@@ -2,8 +2,8 @@ FileType=text/acmi/tacview
 FileVersion=2.2
 0,DataSource=dfxai (3-DoF point-mass dogfight sim)
 0,DataRecorder=dfxai.viz.acmi
-0,ReferenceTime=2026-09-14T10:36:54Z
-0,RecordingTime=2026-09-14T10:36:54Z
+0,ReferenceTime=2026-09-15T03:27:45Z
+0,RecordingTime=2026-09-15T03:27:45Z
 0,Title=BT-v3 vs BT-v3 (seed 10000)
 0,Category=Air-to-Air
 0,Briefing=BT-v3 (청) vs BT-v3 (홍) | seed=10000 | timeout | 승자: 무승부 | HP 100:100 | WEZ 0.0s:0.0s

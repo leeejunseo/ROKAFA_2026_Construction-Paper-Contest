@@ -27,30 +27,55 @@ import numpy as np
 import pandas as pd
 from multiprocessing import Pool
 
-from ..config import config_dump
+from ..config import config_dump, EngagementConfig
 from ..env import DogfightEnv, run_episode
 from ..agents.bt import BTPolicy
 from ..agents.hybrid import MLPPolicy, HybridPolicy
 
 
+# 민감도 분석용 환경 옵션. run() 이 설정하면 워커 프로세스에 인자로 전달됩니다.
+ENV_OPTS: dict = {}
+
+
+def make_env(opts: dict | None = None) -> DogfightEnv:
+    opts = opts or {}
+    ec = EngagementConfig()
+    if "episode_time" in opts:
+        ec.episode_time = float(opts["episode_time"])
+    if "timeout_rule" in opts:
+        ec.timeout_rule = str(opts["timeout_rule"])
+    return DogfightEnv(ec=ec)
+
+
 def build_condition(spec: dict):
-    """조건 명세 -> 정책 객체."""
+    """조건 명세 -> 정책 객체.
+
+    kind: bt (행동트리) | rl (순수 학습) | hybrid (선형 혼합) |
+          bto (상수 최적화 행동트리, bt_param.py) | shield (감독형 혼합, shield.py)
+    """
     kind = spec["kind"]
     if kind == "bt":
         return BTPolicy(version=spec.get("bt_version", 2))
+    if kind == "bto":
+        from ..agents.bt_param import ParamBTPolicy
+        return ParamBTPolicy.load(spec["ckpt"])
     rl = MLPPolicy.load(spec["ckpt"])
     if kind == "rl":
         return rl
+    if kind == "shield":
+        from ..agents.shield import ShieldPolicy
+        return ShieldPolicy(rl, bt_version=spec.get("bt_version", 3))
     return HybridPolicy(BTPolicy(version=spec.get("bt_version", 2)),
                         rl, alpha=float(spec["alpha"]))
 
 
 def _one_job(args):
-    spec, opp_version, seed, side, record = args
+    spec, opp_version, seed, side, record, *rest = args
+    env_opts = rest[0] if rest else {}
     pol = build_condition(spec)
     opp = BTPolicy(version=opp_version)
-    env = DogfightEnv()
-    alpha = float(spec.get("alpha", 1.0 if spec["kind"] == "rl" else 0.0))
+    env = make_env(env_opts)
+    alpha = float(spec.get("alpha", 1.0 if spec["kind"] in ("rl", "shield") else 0.0))
 
     if side == 0:                      # 평가 대상이 청군
         out = run_episode(pol, opp, seed=seed, alpha=alpha, alpha_red=0.0,
@@ -83,21 +108,24 @@ def _one_job(args):
 
 
 def run(conditions, opponents=(2, 3), n_seeds=100, workers=1,
-        outdir="results/main", record_episodes=30, seed0=10_000):
+        outdir="results/main", record_episodes=30, seed0=10_000,
+        env_opts: dict | None = None):
     """본실험 실행.
 
     record_episodes : 조건당 궤적을 기록할 교전 수. 궤적은 대리모델
                       적합에만 쓰이므로 전부 기록할 필요가 없습니다.
+    env_opts        : 민감도 분석용 환경 옵션 (episode_time, timeout_rule).
     """
     os.makedirs(outdir, exist_ok=True)
+    env_opts = dict(env_opts or {})
     jobs = []
     for spec in conditions:
         for ov in opponents:
             for i in range(n_seeds):
                 s = seed0 + i
                 rec = i < record_episodes
-                jobs.append((spec, ov, s, 0, rec))
-                jobs.append((spec, ov, s, 1, False))
+                jobs.append((spec, ov, s, 0, rec, env_opts))
+                jobs.append((spec, ov, s, 1, False, env_opts))
 
     print(f"총 {len(jobs)}회 교전 실행 (조건 {len(conditions)} x 상대 "
           f"{len(opponents)} x 시드 {n_seeds} x 진영 2)", flush=True)
@@ -128,7 +156,8 @@ def run(conditions, opponents=(2, 3), n_seeds=100, workers=1,
 
     with open(os.path.join(outdir, "manifest.json"), "w", encoding="utf-8") as f:
         json.dump({"conditions": conditions, "opponents": list(opponents),
-                   "n_seeds": n_seeds, "config": config_dump()}, f,
+                   "n_seeds": n_seeds, "env_opts": env_opts,
+                   "config": config_dump()}, f,
                   indent=2, ensure_ascii=False)
     print(f"저장 완료: {outdir}")
     return df
@@ -173,10 +202,46 @@ def main():
     ap.add_argument("--outdir", type=str, default="results/main")
     ap.add_argument("--record-episodes", type=int, default=30)
     ap.add_argument("--bt-version", type=int, default=2)
+    ap.add_argument("--bto-ckpts", nargs="*", default=[],
+                    help="상수 최적화 BT 체크포인트 (bt_param.py). 조건명 BTO-s<S>-b<G>")
+    ap.add_argument("--shield-ckpts", nargs="*", default=[],
+                    help="감독형 혼합에 얹을 학습 정책 체크포인트. 조건명 SHD-s<S>-b<G>")
+    ap.add_argument("--ppo-ckpts", nargs="*", default=[],
+                    help="밑바닥 PPO 학습 정책 체크포인트 (train_ppo.py). 조건명 PPO-s<S>-b<step>")
+    ap.add_argument("--no-bt", action="store_true", help="BT 3종 조건을 넣지 않음")
+    ap.add_argument("--episode-time", type=float, default=None,
+                    help="교전 제한시간 [s] (민감도 분석)")
+    ap.add_argument("--timeout-rule", default=None, choices=(None, "hp", "draw"),
+                    help="시간종료 규칙 (민감도 분석): hp=잔여 HP 비교, draw=무승부")
     a = ap.parse_args()
     conds = default_conditions(a.ckpts, tuple(a.alphas), a.bt_version)
+    if a.no_bt:
+        conds = [c for c in conds if c["kind"] != "bt"]
+    for ck in a.bto_ckpts:
+        base = os.path.basename(ck)
+        ms, mg = re.search(r"seed(\d+)", base), re.search(r"gen(\d+)", base)
+        conds.append(dict(name=f"BTO-s{int(ms.group(1)) if ms else 0}-b{int(mg.group(1)) if mg else 0}",
+                          kind="bto", ckpt=ck, train_seed=int(ms.group(1)) if ms else 0,
+                          budget=int(mg.group(1)) if mg else 0, alpha=0.0))
+    for ck in a.shield_ckpts:
+        base = os.path.basename(ck)
+        ms, mg = re.search(r"seed(\d+)", base), re.search(r"gen(\d+)", base)
+        conds.append(dict(name=f"SHD-s{int(ms.group(1)) if ms else 0}-b{int(mg.group(1)) if mg else 0}",
+                          kind="shield", ckpt=ck, train_seed=int(ms.group(1)) if ms else 0,
+                          budget=int(mg.group(1)) if mg else 0, alpha=1.0, bt_version=3))
+    for ck in a.ppo_ckpts:
+        base = os.path.basename(ck)
+        ms, mg = re.search(r"seed(\d+)", base), re.search(r"step(\d+)", base)
+        conds.append(dict(name=f"PPO-s{int(ms.group(1)) if ms else 0}-b{int(mg.group(1)) if mg else 0}",
+                          kind="rl", ckpt=ck, train_seed=int(ms.group(1)) if ms else 0,
+                          budget=int(mg.group(1)) if mg else 0, alpha=1.0))
+    env_opts = {}
+    if a.episode_time is not None:
+        env_opts["episode_time"] = a.episode_time
+    if a.timeout_rule is not None:
+        env_opts["timeout_rule"] = a.timeout_rule
     run(conds, tuple(a.opponents), a.n_seeds, a.workers, a.outdir,
-        a.record_episodes)
+        a.record_episodes, env_opts=env_opts)
 
 
 if __name__ == "__main__":

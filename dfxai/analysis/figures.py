@@ -28,13 +28,24 @@ from ..viz.plots import trajectory_figure
 from .labels import T, set_language, language
 
 _PAT = re.compile(r"^(RL|HYB)-(?:s(\d+)-)?b(\d+)-a([0-9.]+)$")
+_PAT2 = re.compile(r"^(BTO|SHD|PPO)-s(\d+)-b(\d+)$")
 
 
 def parse_cond(name: str) -> dict:
-    """조건명 -> {family, train_seed, budget, alpha}. BT 는 budget=0, alpha=0."""
+    """조건명 -> {family, train_seed, budget, alpha}. BT 는 budget=0, alpha=0.
+
+    계열: BT(행동트리) / RL(순수 학습) / Hybrid(선형 혼합) /
+          BTO(상수 최적화 BT) / Shield(감독형 혼합).
+    """
     if name.startswith("BT-v"):
         return dict(family="BT", train_seed=-1, budget=0, alpha=0.0,
                     bt_version=int(name[4:]))
+    m2 = _PAT2.match(name)
+    if m2:
+        fam, s, b = m2.groups()
+        family = {"BTO": "BTO", "SHD": "Shield", "PPO": "PPO"}[fam]
+        return dict(family=family, train_seed=int(s), budget=int(b),
+                    alpha=0.0 if fam == "BTO" else 1.0, bt_version=-1)
     m = _PAT.match(name)
     if not m:
         return dict(family="?", train_seed=-1, budget=np.nan, alpha=np.nan)
@@ -147,6 +158,19 @@ def plot_tradeoff_families(m: pd.DataFrame, path: str):
     for _, r in bt.iterrows():
         ax.annotate(r["cond"], (r["score"], r["d_star"]), fontsize=7,
                     xytext=(5, 4), textcoords="offset points")
+    # 확장 계열: 최대 예산 조건만 시드 집계 (평균 ± 표준편차)
+    ext_style = {"BTO": ("D", "tab:cyan", T("optimized BT (BTO)", "상수 최적화 BT (BTO)")),
+                 "Shield": ("P", "tab:olive", T("shield hybrid (SHD)", "감독형 혼합 (SHD)")),
+                 "PPO": ("X", "tab:gray", T("PPO from scratch", "밑바닥 PPO"))}
+    for fam, (mk, col, lab) in ext_style.items():
+        e = d[d["family"] == fam]
+        if e.empty:
+            continue
+        e = e[e["budget"] == e["budget"].max()]
+        ax.errorbar(e["score"].mean(), e["d_star"].mean(),
+                    xerr=e["score"].std() if len(e) > 1 else None,
+                    yerr=e["d_star"].std() if len(e) > 1 else None,
+                    fmt=mk, ms=8, color=col, mec="k", capsize=2, label=lab, zorder=4)
     learn = d[d["family"].isin(["RL", "Hybrid"])]
     if not learn.empty:
         g = learn.groupby(["budget", "alpha"]).agg(
@@ -188,7 +212,9 @@ def pick_representative(conds: list[dict]) -> list[dict]:
     합성 데이터처럼 실제 정책이 없는 실행이면 빈 목록을 돌려줍니다.
     """
     picked = [c for c in conds if c["kind"] == "bt"]
-    learned = [c for c in conds if c["kind"] != "bt"]
+    # 순수 학습·혼합 계열만 (PPO 는 kind 가 rl 이지만 이름으로 구분)
+    learned = [c for c in conds if c["kind"] in ("rl", "hybrid")
+               and c["name"].startswith(("RL-", "HYB-"))]
     if learned:
         maxb = max(c.get("budget", 0) for c in learned)
         top = sorted([c for c in learned if c.get("budget", 0) == maxb],
@@ -197,6 +223,13 @@ def pick_representative(conds: list[dict]) -> list[dict]:
         for c in top:
             if c["alpha"] not in seen:
                 picked.append(c); seen.add(c["alpha"])
+    # 확장 계열은 최대 예산·학습 시드 0 하나씩
+    for prefix in ("BTO-", "SHD-", "PPO-"):
+        ext = [c for c in conds if c["name"].startswith(prefix)]
+        if ext:
+            maxb = max(c.get("budget", 0) for c in ext)
+            picked.append(sorted([c for c in ext if c.get("budget", 0) == maxb],
+                                 key=lambda c: c.get("train_seed", 0))[0])
     return picked
 
 

@@ -35,7 +35,11 @@ class MLPPolicy(Policy):
     동일한 평가 파이프라인을 그대로 탈 수 있습니다.
     """
 
-    def __init__(self, hidden=(32, 32), seed: int = 0, params: np.ndarray | None = None):
+    def __init__(self, hidden=(32, 32), seed: int = 0, params: np.ndarray | None = None,
+                 out_act: str = "tanh"):
+        # out_act: 출력층 활성. ES 정책은 tanh, SB3 PPO 에서 변환한 정책은 clip
+        # (PPO 는 선형 출력 평균을 환경에서 [-1,1] 로 자르므로 그대로 옮겨야 같은 정책).
+        self.out_act = out_act
         self.hidden = tuple(hidden)
         self.sizes = (OBS_DIM,) + self.hidden + (ACTION_DIM,)
         self.n_params = sum(self.sizes[i] * self.sizes[i + 1] + self.sizes[i + 1]
@@ -59,18 +63,22 @@ class MLPPolicy(Policy):
         x = np.asarray(obs, dtype=np.float64)
         for k in range(len(self.W) - 1):
             x = np.tanh(x @ self.W[k] + self.b[k])
-        return np.tanh(x @ self.W[-1] + self.b[-1])
+        y = x @ self.W[-1] + self.b[-1]
+        return np.clip(y, -1.0, 1.0) if self.out_act == "clip" else np.tanh(y)
 
     def complexity(self) -> dict:
         return {"nn_params": int(self.n_params), "hidden": str(self.hidden)}
 
     def save(self, path: str) -> None:
-        np.savez(path, flat=self.flat, hidden=np.array(self.hidden))
+        np.savez(path, flat=self.flat, hidden=np.array(self.hidden),
+                 out_act=np.array(self.out_act))
 
     @staticmethod
     def load(path: str) -> "MLPPolicy":
         d = np.load(path)
-        return MLPPolicy(hidden=tuple(int(x) for x in d["hidden"]), params=d["flat"])
+        out_act = str(d["out_act"]) if "out_act" in d.files else "tanh"
+        return MLPPolicy(hidden=tuple(int(x) for x in d["hidden"]), params=d["flat"],
+                         out_act=out_act)
 
 
 # --------------------------------------------------------------- 혼합 정책

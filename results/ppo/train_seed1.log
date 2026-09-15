@@ -1,0 +1,1 @@
+PPO seed=1 timesteps=1500000 alpha=[1.0,1.0] curriculum=False opponents=[1, 2]

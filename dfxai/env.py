@@ -252,7 +252,9 @@ class DogfightEnv:
         self._es_sum += self.blue.specific_energy
         self.n_step += 1
         if self.t >= ec.episode_time:
-            if self.blue.hp > self.red.hp:
+            if ec.timeout_rule == "draw":
+                self._finish(0, "timeout")
+            elif self.blue.hp > self.red.hp:
                 self._finish(1, "timeout")
             elif self.red.hp > self.blue.hp:
                 self._finish(-1, "timeout")

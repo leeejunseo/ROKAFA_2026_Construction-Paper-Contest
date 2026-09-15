@@ -1,0 +1,42 @@
+[gen    1] fit mean=   2.661 max=   8.591 theta=   3.839 accept=1/1 lr=0.0500 (5s)
+[gen   15] fit mean=  -8.807 max=  -5.548 theta=  -8.665 accept=10/15 lr=0.0296 (54s)
+[gen   30] fit mean=  -0.431 max=   4.271 theta=   0.325 accept=16/30 lr=0.0144 (109s)
+[gen   45] fit mean=  -8.599 max=  -0.567 theta=  -8.764 accept=25/45 lr=0.0142 (164s)
+[gen   60] fit mean=  -3.051 max=   1.864 theta=  -1.933 accept=35/60 lr=0.0144 (218s)
+[gen   75] fit mean=   1.501 max=   5.711 theta=   4.416 accept=45/75 lr=0.0125 (276s)
+[gen   90] fit mean= -12.792 max=  -3.453 theta= -11.105 accept=54/90 lr=0.0144 (334s)
+[gen  105] fit mean=  -6.796 max=  -4.196 theta=  -4.283 accept=65/105 lr=0.0165 (390s)
+[gen  120] fit mean=  -4.722 max=   1.526 theta=  -4.146 accept=73/120 lr=0.0125 (449s)
+[gen  135] fit mean=  -0.921 max=   3.782 theta=  -0.293 accept=82/135 lr=0.0144 (506s)
+[gen  150] fit mean=  -5.600 max=  -1.522 theta=  -5.193 accept=90/150 lr=0.0125 (561s)
+[gen  165] fit mean=   6.193 max=  10.470 theta=   7.721 accept=100/165 lr=0.0165 (620s)
+[gen  180] fit mean=  -5.094 max=   0.789 theta=  -2.597 accept=106/180 lr=0.0125 (678s)
+[gen  195] fit mean=  -7.113 max=  -3.089 theta=  -2.852 accept=116/195 lr=0.0187 (734s)
+[gen  210] fit mean=   1.152 max=   6.900 theta=  -0.026 accept=125/210 lr=0.0219 (794s)
+[gen  225] fit mean=  -0.733 max=   3.602 theta=   1.373 accept=132/225 lr=0.0153 (849s)
+[gen  240] fit mean=   1.790 max=   5.970 theta=   5.685 accept=143/240 lr=0.0187 (905s)
+[gen  255] fit mean=  -0.257 max=   4.274 theta=   0.772 accept=151/255 lr=0.0153 (969s)
+[gen  270] fit mean=   1.962 max=   5.832 theta=   2.886 accept=158/270 lr=0.0144 (1025s)
+[gen  285] fit mean=  -7.824 max=   1.465 theta=  -7.115 accept=164/285 lr=0.0125 (1081s)
+[gen  300] fit mean=  -9.286 max=  -5.516 theta= -11.066 accept=170/300 lr=0.0125 (1139s)
+- Selector: root_bto
+  - Sequence: merge_avoidance
+    - Condition: head_on_merge
+    - Action: merge_offset
+  - Sequence: deck_recovery
+    - Condition: below_deck_margin
+    - Action: level_climb
+  - Sequence: gun_tracking
+    - Condition: in_gun_envelope
+    - Action: lead_pursuit_limited_g
+  - Action: pursuit_3d_limited_g
+- g_frac: 0.941
+- lead_gain: 0.880
+- gun_r: 1077.548
+- gun_ata: 0.099
+- deck_margin: 125.245
+- merge_r: 651.275
+- merge_closure: 204.543
+- merge_bank: 62.883
+- throttle: 1.000
+
