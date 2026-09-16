@@ -41,7 +41,7 @@
 
 ### R4. 학습 시드 임의효과 혼합모형과 시드 단위 상관
 
-score ~ D*(표준화) + 예산(표준화) + α, 학습 시드 임의절편. 같은 시드에서 나온 조건들의 상관을 모형이 흡수하므로 D* 계수의 p 값이 표본 독립 가정에 기대지 않습니다. 시드 단위 상관은 순수 학습 정책을 시드별로 평균해(독립 표본 = 시드) 구한 값입니다.
+score \– D*(표준화) + 예산(표준화) + α, 학습 시드 임의절편. 같은 시드에서 나온 조건들의 상관을 모형이 흡수하므로 D* 계수의 p 값이 표본 독립 가정에 기대지 않습니다. 시드 단위 상관은 순수 학습 정책을 시드별로 평균해(독립 표본 = 시드) 구한 값입니다.
 
 | n | n_seeds | coef_dstar | p_dstar | coef_budget | p_budget | coef_alpha | p_alpha | seed_var | resid_var | coef_dstar_only | p_dstar_only | seed_level_rho | seed_level_p | seed_level_n | final_budget_rho | final_budget_p | final_budget_n |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|

@@ -414,7 +414,7 @@ def build(outdir: str, out_path: str, dense_dir: str = "results/dense",
 
     r4 = mixed_model(merged)
     parts.append("### R4. 학습 시드 임의효과 혼합모형과 시드 단위 상관\n\n"
-                 "score ~ D*(표준화) + 예산(표준화) + α, 학습 시드 임의절편. 같은 시드에서 나온 "
+                 "score \~ D*(표준화) + 예산(표준화) + α, 학습 시드 임의절편. 같은 시드에서 나온 "
                  "조건들의 상관을 모형이 흡수하므로 D* 계수의 p 값이 표본 독립 가정에 기대지 않습니다. "
                  "시드 단위 상관은 순수 학습 정책을 시드별로 평균해(독립 표본 = 시드) 구한 값입니다.\n\n"
                  + md_table(pd.DataFrame([r4]), {"p_dstar": "{:.4f}", "p_budget": "{:.4f}", "p_alpha": "{:.4f}",
