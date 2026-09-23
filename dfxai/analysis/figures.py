@@ -28,7 +28,7 @@ from ..viz.plots import trajectory_figure
 from .labels import T, set_language, language
 
 _PAT = re.compile(r"^(RL|HYB)-(?:s(\d+)-)?b(\d+)-a([0-9.]+)$")
-_PAT2 = re.compile(r"^(BTO|SHD|PPO)-s(\d+)-b(\d+)$")
+_PAT2 = re.compile(r"^(BTO|SHD|PPO|RES|GATE)-s(\d+)-b(\d+)$")
 
 
 def parse_cond(name: str) -> dict:
@@ -43,7 +43,7 @@ def parse_cond(name: str) -> dict:
     m2 = _PAT2.match(name)
     if m2:
         fam, s, b = m2.groups()
-        family = {"BTO": "BTO", "SHD": "Shield", "PPO": "PPO"}[fam]
+        family = {"BTO": "BTO", "SHD": "Shield", "PPO": "PPO", "RES": "Residual", "GATE": "Gated"}[fam]
         return dict(family=family, train_seed=int(s), budget=int(b),
                     alpha=0.0 if fam == "BTO" else 1.0, bt_version=-1)
     m = _PAT.match(name)
@@ -161,7 +161,9 @@ def plot_tradeoff_families(m: pd.DataFrame, path: str):
     # 확장 계열: 최대 예산 조건만 시드 집계 (평균 ± 표준편차)
     ext_style = {"BTO": ("D", "tab:cyan", T("optimized BT (BTO)", "상수 최적화 BT (BTO)")),
                  "Shield": ("P", "tab:olive", T("shield hybrid (SHD)", "감독형 혼합 (SHD)")),
-                 "PPO": ("X", "tab:gray", T("PPO from scratch", "밑바닥 PPO"))}
+                 "PPO": ("X", "tab:gray", T("PPO from scratch", "밑바닥 PPO")),
+                 "Residual": ("*", "tab:pink", T("residual hybrid (RES)", "잔차형 혼합 (RES)")),
+                 "Gated": ("h", "tab:brown", T("gated hybrid (GATE)", "게이팅형 혼합 (GATE)"))}
     for fam, (mk, col, lab) in ext_style.items():
         e = d[d["family"] == fam]
         if e.empty:
@@ -224,7 +226,7 @@ def pick_representative(conds: list[dict]) -> list[dict]:
             if c["alpha"] not in seen:
                 picked.append(c); seen.add(c["alpha"])
     # 확장 계열은 최대 예산·학습 시드 0 하나씩
-    for prefix in ("BTO-", "SHD-", "PPO-"):
+    for prefix in ("BTO-", "SHD-", "PPO-", "RES-", "GATE-"):
         ext = [c for c in conds if c["name"].startswith(prefix)]
         if ext:
             maxb = max(c.get("budget", 0) for c in ext)

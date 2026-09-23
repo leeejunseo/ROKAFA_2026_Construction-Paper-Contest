@@ -59,6 +59,12 @@ def build_condition(spec: dict):
     if kind == "bto":
         from ..agents.bt_param import ParamBTPolicy
         return ParamBTPolicy.load(spec["ckpt"])
+    if kind == "residual":
+        from ..agents.residual import ResidualPolicy
+        return ResidualPolicy.load(spec["ckpt"])
+    if kind == "gating":
+        from ..agents.gating import GatingPolicy
+        return GatingPolicy.load(spec["ckpt"])
     rl = MLPPolicy.load(spec["ckpt"])
     if kind == "rl":
         return rl
@@ -75,7 +81,7 @@ def _one_job(args):
     pol = build_condition(spec)
     opp = BTPolicy(version=opp_version)
     env = make_env(env_opts)
-    alpha = float(spec.get("alpha", 1.0 if spec["kind"] in ("rl", "shield") else 0.0))
+    alpha = float(spec.get("alpha", 1.0 if spec["kind"] in ("rl", "shield", "residual", "gating") else 0.0))
 
     if side == 0:                      # 평가 대상이 청군
         out = run_episode(pol, opp, seed=seed, alpha=alpha, alpha_red=0.0,
@@ -208,6 +214,10 @@ def main():
                     help="감독형 혼합에 얹을 학습 정책 체크포인트. 조건명 SHD-s<S>-b<G>")
     ap.add_argument("--ppo-ckpts", nargs="*", default=[],
                     help="밑바닥 PPO 학습 정책 체크포인트 (train_ppo.py). 조건명 PPO-s<S>-b<step>")
+    ap.add_argument("--residual-ckpts", nargs="*", default=[],
+                    help="잔차형 혼합 체크포인트 (train_es_hybrid.py --kind residual). 조건명 RES-s<S>-b<G>")
+    ap.add_argument("--gate-ckpts", nargs="*", default=[],
+                    help="게이팅형 혼합 체크포인트 (train_es_hybrid.py --kind gating). 조건명 GATE-s<S>-b<G>")
     ap.add_argument("--no-bt", action="store_true", help="BT 3종 조건을 넣지 않음")
     ap.add_argument("--episode-time", type=float, default=None,
                     help="교전 제한시간 [s] (민감도 분석)")
@@ -235,6 +245,13 @@ def main():
         conds.append(dict(name=f"PPO-s{int(ms.group(1)) if ms else 0}-b{int(mg.group(1)) if mg else 0}",
                           kind="rl", ckpt=ck, train_seed=int(ms.group(1)) if ms else 0,
                           budget=int(mg.group(1)) if mg else 0, alpha=1.0))
+    for ck, prefix, kind in [(c, "RES", "residual") for c in a.residual_ckpts] + \
+                            [(c, "GATE", "gating") for c in a.gate_ckpts]:
+        base = os.path.basename(ck)
+        ms, mg = re.search(r"seed(\d+)", base), re.search(r"gen(\d+)", base)
+        conds.append(dict(name=f"{prefix}-s{int(ms.group(1)) if ms else 0}-b{int(mg.group(1)) if mg else 0}",
+                          kind=kind, ckpt=ck, train_seed=int(ms.group(1)) if ms else 0,
+                          budget=int(mg.group(1)) if mg else 0, alpha=1.0, bt_version=2))
     env_opts = {}
     if a.episode_time is not None:
         env_opts["episode_time"] = a.episode_time
