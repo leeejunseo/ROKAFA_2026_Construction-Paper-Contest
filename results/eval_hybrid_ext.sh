@@ -45,4 +45,6 @@ echo "=== 리포트 시작 $(date)" >> "$LOG"
 python -m dfxai.analysis.report  --outdir results/main_hyb >> "$LOG" 2>&1
 python -m dfxai.analysis.figures --outdir results/main_hyb --esdir results/es_res >> "$LOG" 2>&1
 python -m dfxai.analysis.paper   --outdir results/main_hyb --esdir results/es_res --out paper/results_hyb.md >> "$LOG" 2>&1
+python -m dfxai.analysis.report  --outdir results/main_hyb --lang ko --figs-only >> "$LOG" 2>&1
+python -m dfxai.analysis.figures --outdir results/main_hyb --esdir results/es_res --lang ko >> "$LOG" 2>&1
 echo "=== 전부 완료 $(date)" >> "$LOG"

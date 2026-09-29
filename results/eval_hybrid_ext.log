@@ -1,1 +1,47 @@
-=== ëŒ€ê¸° ì‹œì‘ Wed Sep 23 12:38:51     2026
+=== ì‹œì‘ Tue Sep 29 21:10:10     2026
+=== ì²´í¬í¬ì¸íŠ¸ 6ê°œ í™•ì¸ Tue Sep 29 21:10:10     2026
+°è¿­ | ½Ãµå | ¼¼´ë | Áø´Ü°ª Æò±Õ (Ã¹ ¼¼´ë ¡æ 25 ¡æ 100 ¡æ 200) | Ç¥ÁØÆíÂ÷(200) | ÃÖÁ¾ ÀûÇÕµµ
+RES history_seed0.json 200 |¥ä| 0.011 ¡æ 0.040 ¡æ 0.044 ¡æ 0.226 std 0.057 fit 13.46
+RES history_seed1.json 200 |¥ä| 0.023 ¡æ 0.040 ¡æ 0.147 ¡æ 0.199 std 0.046 fit 9.79
+RES history_seed2.json 200 |¥ä| 0.008 ¡æ 0.039 ¡æ 0.072 ¡æ 0.159 std 0.038 fit 5.47
+GATE history_seed0.json 200 g 0.494 ¡æ 0.368 ¡æ 0.280 ¡æ 0.369 std 0.029 fit -1.47
+GATE history_seed1.json 200 g 0.491 ¡æ 0.494 ¡æ 0.527 ¡æ 0.583 std 0.051 fit 4.46
+GATE history_seed2.json 200 g 0.466 ¡æ 0.439 ¡æ 0.430 ¡æ 0.580 std 0.038 fit 3.43
+=== ë³¸í‰ê°€ ì‹œì‘ Tue Sep 29 21:10:10     2026
+ÃÑ 7200È¸ ±³Àü ½ÇÇà (Á¶°Ç 18 x »ó´ë 2 x ½Ãµå 100 x Áø¿µ 2)
+ÀúÀå ¿Ï·á: results/main_hyb
+=== ë¦¬í¬íŠ¸ ì‹œì‘ Tue Sep 29 21:11:56     2026
+              cond   family   score  score_heldout  d_star  fidelity_at_4  viol_total
+ RL-s11-b300-a1.00       RL 0.77625         0.8325     3.0       0.961864    0.048633
+      GATE-s2-b200    Gated 0.75875         0.8200    17.0       0.930086    0.060897
+      GATE-s1-b200    Gated 0.73750         0.8075    17.0       0.905604    0.055064
+      GATE-s1-b100    Gated 0.72250         0.7950    17.0       0.905040    0.070291
+       RES-s0-b100 Residual 0.69875         0.8675    17.0       0.917560    0.090321
+      GATE-s2-b100    Gated 0.67625         0.7650    17.0       0.918857    0.085105
+             BT-v2       BT 0.67125         0.8425     4.0       0.952355    0.100491
+      GATE-s0-b200    Gated 0.66875         0.7625    17.0       0.923805    0.081661
+      GATE-s0-b100    Gated 0.64375         0.7500     6.0       0.942739    0.080979
+       RES-s2-b200 Residual 0.64250         0.7125     6.0       0.936885    0.064341
+HYB-s11-b300-a0.50   Hybrid 0.64125         0.7225    17.0       0.922231    0.073361
+       RES-s0-b200 Residual 0.64000         0.7125     6.0       0.925397    0.069524
+       RES-s1-b100 Residual 0.63000         0.7650    17.0       0.930833    0.083688
+       RES-s2-b100 Residual 0.62875         0.7075     5.0       0.933260    0.060020
+       RES-s1-b200 Residual 0.60000         0.6450    17.0       0.919201    0.057295
+      SHD-s11-b300   Shield 0.59250         0.7125    17.0       0.911647    0.008333
+             BT-v3       BT 0.32875         0.5000     5.0       0.940204    0.008046
+             BT-v1       BT 0.24125         0.2325     1.0       0.995245    0.004690
+results/main_hyb\paper_figs\fig_overview.png
+results/main_hyb\paper_figs\fig_learning_curve.png
+results/main_hyb\paper_figs\fig_budget_sweep.png
+results/main_hyb\paper_figs\fig_tradeoff_families.png
+results/main_hyb\paper_figs\fig_traj_BT-v1.png
+results/main_hyb\paper_figs\fig_traj_BT-v2.png
+results/main_hyb\paper_figs\fig_traj_BT-v3.png
+results/main_hyb\paper_figs\fig_traj_HYB-s11-b300-a0.50.png
+results/main_hyb\paper_figs\fig_traj_RL-s11-b300-a1.00.png
+results/main_hyb\paper_figs\fig_traj_SHD-s11-b300.png
+results/main_hyb\paper_figs\fig_traj_RES-s0-b200.png
+results/main_hyb\paper_figs\fig_traj_GATE-s0-b200.png
+results/main_hyb\paper_figs\fig_traj_pair.png
+paper/results_hyb.md
+=== ì „ë¶€ ì™„ë£Œ Tue Sep 29 21:13:39     2026

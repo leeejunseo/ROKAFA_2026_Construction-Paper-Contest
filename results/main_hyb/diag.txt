@@ -1,0 +1,7 @@
+계열 | 시드 | 세대 | 진단값 평균 (첫 세대 → 25 → 100 → 200) | 표준편차(200) | 최종 적합도
+RES history_seed0.json 200 |δ| 0.011 → 0.040 → 0.044 → 0.226 std 0.057 fit 13.46
+RES history_seed1.json 200 |δ| 0.023 → 0.040 → 0.147 → 0.199 std 0.046 fit 9.79
+RES history_seed2.json 200 |δ| 0.008 → 0.039 → 0.072 → 0.159 std 0.038 fit 5.47
+GATE history_seed0.json 200 g 0.494 → 0.368 → 0.280 → 0.369 std 0.029 fit -1.47
+GATE history_seed1.json 200 g 0.491 → 0.494 → 0.527 → 0.583 std 0.051 fit 4.46
+GATE history_seed2.json 200 g 0.466 → 0.439 → 0.430 → 0.580 std 0.038 fit 3.43

@@ -194,3 +194,27 @@ Traceback (most recent call last):
     ov, err = _winapi.WriteFile(self._handle, buf, overlapped=True)
               ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 BrokenPipeError: [WinError 232] ÆÄÀÌÇÁ°¡ ´ÝÈ÷´Â ÁßÀÔ´Ï´Ù
+=== GATE seed 2 (ìž¬ì‹œìž‘) Tue Sep 29 20:53:54     2026
+[gating] ÇÐ½À ÆÄ¶ó¹ÌÅÍ 177°³, pop 32, ÈÄº¸´ç 8±³Àü, ¥ò 0.05, lr 0.01, rl results/es/ckpt_seed11_gen00300.npz
+[gen    1] fit mean=  12.797 max=  16.449 theta=  14.306 accept=1/1 lr=0.0100 g=0.466¡¾0.003 (12s)
+[gen   10] fit mean=  -1.276 max=   3.157 theta=  -0.369 accept=6/10 lr=0.0032 g=0.486¡¾0.012 (62s)
+[gen   20] fit mean=   4.083 max=   7.206 theta=   5.146 accept=11/20 lr=0.0029 g=0.447¡¾0.016 (112s)
+[gen   30] fit mean=   5.383 max=   7.592 theta=   5.879 accept=14/30 lr=0.0025 g=0.446¡¾0.016 (161s)
+[gen   40] fit mean=   2.257 max=   4.741 theta=   2.847 accept=19/40 lr=0.0029 g=0.437¡¾0.014 (214s)
+[gen   50] fit mean=  -1.200 max=   1.748 theta=  -0.435 accept=26/50 lr=0.0027 g=0.411¡¾0.012 (265s)
+[gen   60] fit mean=   0.497 max=   3.873 theta=   2.649 accept=31/60 lr=0.0025 g=0.412¡¾0.013 (313s)
+[gen   70] fit mean=   3.490 max=   8.510 theta=   7.502 accept=36/70 lr=0.0033 g=0.418¡¾0.014 (361s)
+[gen   80] fit mean=   0.285 max=   2.798 theta=   1.126 accept=42/80 lr=0.0033 g=0.428¡¾0.012 (407s)
+[gen   90] fit mean=   3.636 max=   6.551 theta=   4.961 accept=48/90 lr=0.0038 g=0.461¡¾0.013 (458s)
+[gen  100] fit mean=   3.901 max=   7.241 theta=   4.101 accept=53/100 lr=0.0029 g=0.430¡¾0.015 (504s)
+[gen  110] fit mean=   0.903 max=   4.767 theta=   2.708 accept=57/110 lr=0.0029 g=0.477¡¾0.018 (553s)
+[gen  120] fit mean=   7.243 max=  12.641 theta=   9.278 accept=64/120 lr=0.0040 g=0.490¡¾0.020 (600s)
+[gen  130] fit mean=   9.117 max=  12.878 theta=  10.754 accept=71/130 lr=0.0037 g=0.491¡¾0.020 (646s)
+[gen  140] fit mean=   6.339 max=  10.652 theta=  10.036 accept=77/140 lr=0.0035 g=0.510¡¾0.022 (693s)
+[gen  150] fit mean=  -6.226 max=  -3.439 theta=  -5.056 accept=84/150 lr=0.0040 g=0.559¡¾0.033 (739s)
+[gen  160] fit mean=   4.213 max=   7.897 theta=   4.681 accept=90/160 lr=0.0044 g=0.524¡¾0.028 (787s)
+[gen  170] fit mean=   9.035 max=  14.229 theta=  10.199 accept=95/170 lr=0.0025 g=0.578¡¾0.041 (833s)
+[gen  180] fit mean=  -0.855 max=   2.368 theta=  -1.558 accept=99/180 lr=0.0025 g=0.544¡¾0.044 (882s)
+[gen  190] fit mean=   3.194 max=   6.225 theta=   4.716 accept=105/190 lr=0.0044 g=0.521¡¾0.035 (929s)
+[gen  200] fit mean=   2.173 max=   4.601 theta=   3.433 accept=110/200 lr=0.0027 g=0.580¡¾0.038 (974s)
+=== DONE Tue Sep 29 21:10:10     2026
