@@ -109,7 +109,11 @@ def step(state: AircraftState, cmd, dt: float, cfg: AircraftConfig) -> None:
     thr_c = _clip(thr_c, 0.0, 1.0)
 
     # --- 1차 지연 응답 ---
-    state.mu += (mu_c - state.mu) * min(1.0, dt / cfg.tau_bank)
+    dmu = (mu_c - state.mu) * min(1.0, dt / cfg.tau_bank)
+    if cfg.roll_rate_max > 0.0:                    # 민감도 분석(R9) 전용
+        lim = cfg.roll_rate_max * dt
+        dmu = _clip(dmu, -lim, lim)
+    state.mu += dmu
     state.n += (n_c - state.n) * min(1.0, dt / cfg.tau_load)
     state.thr += (thr_c - state.thr) * min(1.0, dt / cfg.tau_throttle)
 

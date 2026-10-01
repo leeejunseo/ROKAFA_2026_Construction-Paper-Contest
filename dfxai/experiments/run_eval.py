@@ -27,7 +27,7 @@ import numpy as np
 import pandas as pd
 from multiprocessing import Pool
 
-from ..config import config_dump, EngagementConfig
+from ..config import config_dump, EngagementConfig, AircraftConfig
 from ..env import DogfightEnv, run_episode
 from ..agents.bt import BTPolicy
 from ..agents.hybrid import MLPPolicy, HybridPolicy
@@ -38,13 +38,32 @@ ENV_OPTS: dict = {}
 
 
 def make_env(opts: dict | None = None) -> DogfightEnv:
+    """opts: 교전 규칙(episode_time, timeout_rule)과 비행역학(R9) 민감도 옵션.
+
+    비행역학 옵션은 **환경의 기체**만 바꿉니다. 정책이 안에 품은 기체 가정
+    (BT 의 코너속도 계산 등)은 본실험 그대로이므로, 실제 기체와 정책의 가정이
+    어긋날 때 결론이 유지되는지를 보는 시험이 됩니다.
+      cl_max_scale  최대 양력계수 배율       thrust_scale  최대추력 배율
+      lag_scale     뱅크·하중·스로틀 지연 시상수 배율
+      roll_rate_max_deg  롤 속도 상한 [deg/s]
+    """
     opts = opts or {}
     ec = EngagementConfig()
     if "episode_time" in opts:
         ec.episode_time = float(opts["episode_time"])
     if "timeout_rule" in opts:
         ec.timeout_rule = str(opts["timeout_rule"])
-    return DogfightEnv(ec=ec)
+    ac = AircraftConfig()
+    if "cl_max_scale" in opts:
+        ac.cl_max *= float(opts["cl_max_scale"])
+    if "thrust_scale" in opts:
+        ac.thrust_max_sl *= float(opts["thrust_scale"])
+    if "lag_scale" in opts:
+        s = float(opts["lag_scale"])
+        ac.tau_bank *= s; ac.tau_load *= s; ac.tau_throttle *= s
+    if "roll_rate_max_deg" in opts:
+        ac.roll_rate_max = float(np.radians(float(opts["roll_rate_max_deg"])))
+    return DogfightEnv(ac=ac, ec=ec)
 
 
 def build_condition(spec: dict):
@@ -223,6 +242,10 @@ def main():
                     help="교전 제한시간 [s] (민감도 분석)")
     ap.add_argument("--timeout-rule", default=None, choices=(None, "hp", "draw"),
                     help="시간종료 규칙 (민감도 분석): hp=잔여 HP 비교, draw=무승부")
+    ap.add_argument("--cl-max-scale", type=float, default=None, help="최대 양력계수 배율 (R9)")
+    ap.add_argument("--thrust-scale", type=float, default=None, help="최대추력 배율 (R9)")
+    ap.add_argument("--lag-scale", type=float, default=None, help="지령 지연 시상수 배율 (R9)")
+    ap.add_argument("--roll-rate-max", type=float, default=None, help="롤 속도 상한 [deg/s] (R9)")
     a = ap.parse_args()
     conds = default_conditions(a.ckpts, tuple(a.alphas), a.bt_version)
     if a.no_bt:
@@ -257,6 +280,10 @@ def main():
         env_opts["episode_time"] = a.episode_time
     if a.timeout_rule is not None:
         env_opts["timeout_rule"] = a.timeout_rule
+    for key, val in (("cl_max_scale", a.cl_max_scale), ("thrust_scale", a.thrust_scale),
+                     ("lag_scale", a.lag_scale), ("roll_rate_max_deg", a.roll_rate_max)):
+        if val is not None:
+            env_opts[key] = val
     run(conds, tuple(a.opponents), a.n_seeds, a.workers, a.outdir,
         a.record_episodes, env_opts=env_opts)
 

@@ -13,7 +13,7 @@ import matplotlib
 from matplotlib import font_manager
 
 _LANG = "en"
-_KO_FONTS = ("Malgun Gothic", "Noto Sans KR", "NanumGothic", "Gulim", "Dotum")
+_KO_FONTS = ("Malgun Gothic", "Noto Sans KR", "NanumGothic", "Gulim", "Dotum", "WenQuanYi Zen Hei")
 
 
 def set_language(lang: str) -> None:
