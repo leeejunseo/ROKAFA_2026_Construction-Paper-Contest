@@ -63,7 +63,18 @@ def make_env(opts: dict | None = None) -> DogfightEnv:
         ac.tau_bank *= s; ac.tau_load *= s; ac.tau_throttle *= s
     if "roll_rate_max_deg" in opts:
         ac.roll_rate_max = float(np.radians(float(opts["roll_rate_max_deg"])))
+    if opts.get("sixdof"):
+        # 6자유도(JSBSim) 교차검증: 교전 규칙은 그대로, 비행역학만 JSBSim F-16.
+        # JSBSim 모델 로드가 느리므로 작업자 프로세스마다 환경 하나를 재사용합니다.
+        key = json.dumps(opts, sort_keys=True)
+        if key not in _SIXDOF_CACHE:
+            from ..sixdof.env6dof import SixDofEnv
+            _SIXDOF_CACHE[key] = SixDofEnv(ac=ac, ec=ec)
+        return _SIXDOF_CACHE[key]
     return DogfightEnv(ac=ac, ec=ec)
+
+
+_SIXDOF_CACHE: dict = {}
 
 
 def build_condition(spec: dict):
@@ -129,6 +140,8 @@ def _one_job(args):
         viol_sep=v.get("separation", 0.0),
         mean_es=res.mean_es_blue if side == 0 else np.nan,
     )
+    if hasattr(env, "trim_ok"):                # 6자유도: 초기 트림 성공 여부 기록
+        row["trim_ok"] = bool(env.trim_ok)
     return row, (ob, ac)
 
 
@@ -246,6 +259,8 @@ def main():
     ap.add_argument("--thrust-scale", type=float, default=None, help="최대추력 배율 (R9)")
     ap.add_argument("--lag-scale", type=float, default=None, help="지령 지연 시상수 배율 (R9)")
     ap.add_argument("--roll-rate-max", type=float, default=None, help="롤 속도 상한 [deg/s] (R9)")
+    ap.add_argument("--sixdof", action="store_true",
+                    help="6자유도(JSBSim F-16) 평가 전용 교차검증 환경 (dfxai/sixdof)")
     a = ap.parse_args()
     conds = default_conditions(a.ckpts, tuple(a.alphas), a.bt_version)
     if a.no_bt:
@@ -284,6 +299,8 @@ def main():
                      ("lag_scale", a.lag_scale), ("roll_rate_max_deg", a.roll_rate_max)):
         if val is not None:
             env_opts[key] = val
+    if a.sixdof:
+        env_opts["sixdof"] = True
     run(conds, tuple(a.opponents), a.n_seeds, a.workers, a.outdir,
         a.record_episodes, env_opts=env_opts)
 

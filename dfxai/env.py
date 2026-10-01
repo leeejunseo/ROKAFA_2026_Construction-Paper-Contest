@@ -100,6 +100,9 @@ class DogfightEnv:
         self.traj_stride = max(1, int(traj_stride))
         self.traj: list[tuple] = []
         self.events: list[tuple] = []
+        # 비행역학 적분 함수. 기본은 3자유도 점질량(dynamics.step).
+        # 6자유도 교차검증(dfxai/sixdof/env6dof.py)은 이것만 JSBSim 으로 바꾼다.
+        self._integrate = dyn_step
 
     # ------------------------------------------------------------------ 초기화
     def reset(self, seed: int = 0, alpha: float = 1.0,
@@ -183,8 +186,8 @@ class DogfightEnv:
         cmd_r = action_to_command(a_red, self.red, ac)
 
         for _ in range(ec.n_substeps):
-            dyn_step(self.blue, cmd_b, ec.dt_sim, ac)
-            dyn_step(self.red, cmd_r, ec.dt_sim, ac)
+            self._integrate(self.blue, cmd_b, ec.dt_sim, ac)
+            self._integrate(self.red, cmd_r, ec.dt_sim, ac)
             self.t += ec.dt_sim
 
             lx, ly, lz, r = los_range(self.blue, self.red)
