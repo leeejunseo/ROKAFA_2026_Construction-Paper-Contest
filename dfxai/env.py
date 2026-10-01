@@ -27,7 +27,7 @@ def action_to_command(a: np.ndarray, state: AircraftState,
                       ac: AircraftConfig) -> np.ndarray:
     """정책 출력 a in [-1,1]^3 를 물리 지령으로 변환.
 
-    a[0] -> 뱅크각 지령   [-100deg, +100deg]
+    a[0] -> 뱅크각 지령   [-180deg, +180deg]  (ac.bank_cmd_limit = pi)
     a[1] -> 하중배수 지령 [0, 현재 가용 최대 G]
     a[2] -> 스로틀 지령   [0, 1]
 
