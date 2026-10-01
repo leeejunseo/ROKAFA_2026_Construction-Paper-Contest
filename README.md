@@ -119,7 +119,8 @@ D\*=4, BT-v3 D\*=5), 신경망이라도 행동이 단순하면 설명이 쉽다(
 | `paper/results_robust.md` | 부록 강건성 실험(격추 우선 적합도) 표 전체 |
 | `paper/results_r9.md`, `results/r9_*/` | 비행역학 민감도(R9) 자동 문서와 원자료. 요약은 6.9절 |
 | `results/envelope/` | 기체 모델의 속도별 선회율과 코너 속도 (논문 그림 3-2) |
-| `dfxai/sixdof/`, `results/sixdof/`, `paper/6DOF_교차검증_사전기준_초안.md` | 6자유도(JSBSim F-16) 평가 전용 교차검증 시제품, 추종 제어기 계단 응답, 실행 전 판정 기준 초안(**팀 합의 전, 본 평가 미실시**) |
+| `dfxai/sixdof/`, `results/sixdof/`, `paper/6DOF_교차검증_사전기준_초안.md` | 6자유도(JSBSim F-16) 평가 전용 교차검증 코드, 추종 제어기 계단 응답, 실행 전 확정한 판정 기준 |
+| `paper/results_6dof.md`, `results/sixdof_main/` | 6자유도 교차검증 결과(31개 정책 × 400교전): 성능 순위 유지 안 됨(ρ=0.12, 학습 정책 우위 소멸), 트레이드오프 출현 안 함(ρ=−0.47) |
 | `results/main/paper_figs/*.png`, `results/main/fig_*.png` | 논문 그림 (영문 라벨) |
 | `results/main/paper_figs_ko/*.png`, `results/main/fig_*_ko.png` | 같은 그림의 **한글 라벨** 판 |
 | `results/replay/*.acmi` | Tacview 로 재생하는 대표 교전 (심사 시연용) |

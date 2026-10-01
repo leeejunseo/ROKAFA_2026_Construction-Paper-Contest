@@ -4,3 +4,5 @@ results/r9_*/traj_*.npz
 
 # 이 클라우드 작업 환경(Python 3.11)의 바이트코드. 기존에 추적되던 3.13 캐시는 그대로 둔다.
 *.cpython-311.pyc
+# 6자유도 교차검증 궤적 파일 (약 145 MB). python -m dfxai.sixdof.crossval run 으로 그대로 재생성된다.
+results/sixdof_main/traj_*.npz
