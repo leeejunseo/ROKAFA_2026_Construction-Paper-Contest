@@ -1,0 +1,22 @@
+{
+  "SL": {
+    "h_m": 0.0,
+    "corner_speed_ms": 173.3570645914507,
+    "corner_speed_ktas": 336.97946635873035,
+    "itr_at_corner_dps": 28.989902645463495,
+    "max_str_dps": 23.105013630472204,
+    "max_str_speed_ms": 140.0,
+    "max_str_speed_ktas": 272.1384640505089,
+    "max_str_load_factor": 5.843136507083948
+  },
+  "15,000 ft": {
+    "h_m": 4572.0,
+    "corner_speed_ms": 218.54167044895118,
+    "corner_speed_ktas": 424.8113894786433,
+    "itr_at_corner_dps": 22.99609230168947,
+    "max_str_dps": 15.368692853508888,
+    "max_str_speed_ms": 150.0,
+    "max_str_speed_ktas": 291.57692576840236,
+    "max_str_load_factor": 4.222951506380613
+  }
+}

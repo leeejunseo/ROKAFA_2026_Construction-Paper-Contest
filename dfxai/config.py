@@ -35,6 +35,10 @@ class AircraftConfig:
     #                             포화되면 행동이 사실상 이진값이 되어
     #                             대리모델이 깊이 1로도 재현해 버립니다.
 
+    roll_rate_max: float = 0.0      # 롤 속도 상한 [rad/s]. 0 = 상한 없음(본실험).
+    #                             민감도 분석(R9)에서만 켭니다. 1차 지연만 쓰면
+    #                             큰 뱅크 지령에서 첫 스텝 롤 속도가 ~500 deg/s 에 이릅니다.
+
 
 @dataclass
 class EngagementConfig:
