@@ -2,7 +2,22 @@
 # bash results/r9_pipeline.sh 로 그대로 재생성된다.
 results/r9_*/traj_*.npz
 
-# 이 클라우드 작업 환경(Python 3.11)의 바이트코드. 기존에 추적되던 3.13 캐시는 그대로 둔다.
-*.cpython-311.pyc
+# 파이썬 바이트코드. 실행하면 자동으로 다시 생기므로 저장소에 두지 않는다(2026-11-04 추적 해제).
+__pycache__/
+*.pyc
+
+# 대회 안내문(주최 측 배포 자료)은 저장소에 올리지 않는다.
+경진대회 안내문/
 # 6자유도 교차검증 궤적 파일 (약 145 MB). python -m dfxai.sixdof.crossval run 으로 그대로 재생성된다.
 results/sixdof_main/traj_*.npz
+
+# C안 분산 학습: 결과는 공유 드라이브로만 모은다(C안_실행명세서 2.1절). 엔지니어가 모아 최종 평가·요약만 커밋한다.
+results/es6_*/
+results/es3_*/
+upload/
+results/**/state_*.json
+results/**/state_*.npz
+results/cplan/bc/*_data.npz
+
+# 교범 원문(PDF)은 보안성 검토 전까지 저장소에 올리지 않는다 (docs/BT-M_교범대응표.md 1절)
+*Basic-Employment-Manual*.pdf

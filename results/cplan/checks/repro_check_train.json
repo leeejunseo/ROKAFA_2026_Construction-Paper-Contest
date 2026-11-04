@@ -1,0 +1,29 @@
+{
+  "git": {
+    "commit": "560959e440495771f0cf8512ea457b5a0ed7a00d",
+    "describe": "560959e-dirty",
+    "code_dirty": true
+  },
+  "results": [
+    {
+      "test": "초기화형 train_es 시드 0",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "잔차형 train_es_hybrid 시드 0",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "게이팅형 train_es_hybrid 시드 0",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "파라미터 최적화형 train_es_bt 시드 0",
+      "passed": true,
+      "detail": ""
+    }
+  ]
+}

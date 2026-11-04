@@ -213,13 +213,15 @@ class DogfightEnv:
                 self._wez_r += ec.dt_sim
 
             # --- 규칙 위반 집계 ---
+            og_b = self._rule_load(self.blue) > ec.over_g_limit
+            og_r = self._rule_load(self.red) > ec.over_g_limit
             if self.blue.h < ec.hard_deck:
                 self._viol_b["deck"] += 1
-            if self.blue.n > ec.over_g_limit:
+            if og_b:
                 self._viol_b["over_g"] += 1
             if self.red.h < ec.hard_deck:
                 self._viol_r["deck"] += 1
-            if self.red.n > ec.over_g_limit:
+            if og_r:
                 self._viol_r["over_g"] += 1
             if r < ec.min_separation:
                 self._viol_b["separation"] += 1
@@ -233,8 +235,8 @@ class DogfightEnv:
                            "청 하드덱 침범", "Bookmark")
                 self._edge("deck_r", self.red.h < ec.hard_deck, "red",
                            "홍 하드덱 침범", "Bookmark")
-                self._edge("og_b", self.blue.n > ec.over_g_limit, "blue", "청 과G")
-                self._edge("og_r", self.red.n > ec.over_g_limit, "red", "홍 과G")
+                self._edge("og_b", og_b, "blue", "청 과G")
+                self._edge("og_r", og_r, "red", "홍 과G")
                 self._edge("sep", r < ec.min_separation, "both", "최소이격 침범")
                 self._sub += 1
                 if self._sub % self.traj_stride == 0:
@@ -264,6 +266,11 @@ class DogfightEnv:
             else:
                 self._finish(0, "timeout")
         return self._term()
+
+    def _rule_load(self, state: AircraftState) -> float:
+        """과G 위반 판정에 쓰는 하중배수. 3자유도는 기체 하중배수 그대로다.
+        6자유도(sixdof/env6dof.py)는 같은 정의가 되도록 이것을 바꾼다(C안 E3)."""
+        return state.n
 
     def _finish(self, winner: int, outcome: str):
         self._done = True

@@ -1,0 +1,213 @@
+{
+  "bt": "BT-M",
+  "passed": false,
+  "quick": false,
+  "rows": [
+    [
+      "형식",
+      "Policy 상속",
+      true,
+      "BTMPolicy"
+    ],
+    [
+      "형식",
+      "act() 출력 [-1, 1]^3 유한값",
+      true,
+      "범위 [-1.000, 1.000]"
+    ],
+    [
+      "형식",
+      "last_node 기록",
+      true,
+      "발동 노드 ['high_g_pull', 'lateral_offset', 'lead_pursuit_gun', 'rate_turn_lead_or_two_circle', 'recover_lift_vector_up', 'turn_circle_entry']"
+    ],
+    [
+      "형식",
+      "기억 없음 (같은 관측 = 같은 지령, 순서 무관)",
+      true,
+      "D* 는 관측의 함수인 정책을 전제로 한다. 내부 상태가 있으면 실패"
+    ],
+    [
+      "형식",
+      "SAFETY_NODES 공개",
+      true,
+      "('lateral_offset', 'recover_lift_vector_up')"
+    ],
+    [
+      "형식",
+      "PARAM_SPEC 5–10개, 하한 ≤ 기본값 ≤ 상한",
+      true,
+      "8개"
+    ],
+    [
+      "형식",
+      "기본값 θ 정책 = 기본 정책",
+      true,
+      "최대 차이 0.00e+00"
+    ],
+    [
+      "형식",
+      "θ = -1 (모든 상수 경계값) 동작",
+      true,
+      ""
+    ],
+    [
+      "형식",
+      "θ = +1 (모든 상수 경계값) 동작",
+      true,
+      ""
+    ],
+    [
+      "형식",
+      "rule_count()",
+      true,
+      "7"
+    ],
+    [
+      "3DOF",
+      "① 400교전 오류 없음",
+      true,
+      "오류 0회 "
+    ],
+    [
+      "3DOF",
+      "② 공중충돌 ≤ 10%",
+      true,
+      "0.010"
+    ],
+    [
+      "3DOF",
+      "② 지면충돌(자기 추락) ≤ 5%",
+      true,
+      "0.000"
+    ],
+    [
+      "3DOF",
+      "③ BT-v2 상대 점수 ≥ 0.45",
+      true,
+      "0.472"
+    ],
+    [
+      "3DOF",
+      "④ 행동 복제 R² ≥ 0.9",
+      true,
+      "0.907 (채널별 [0.957, 0.972, 0.686])"
+    ],
+    [
+      "6DOF",
+      "① 400교전 오류 없음",
+      true,
+      "오류 0회 "
+    ],
+    [
+      "6DOF",
+      "② 공중충돌 ≤ 10%",
+      true,
+      "0.048"
+    ],
+    [
+      "6DOF",
+      "② 지면충돌(자기 추락) ≤ 5%",
+      true,
+      "0.000"
+    ],
+    [
+      "6DOF",
+      "③ BT-v2 상대 점수 ≥ 0.45",
+      true,
+      "0.465"
+    ],
+    [
+      "6DOF",
+      "④ 행동 복제 R² ≥ 0.9",
+      false,
+      "0.784 (채널별 [0.955, 0.861, 0.653])"
+    ]
+  ],
+  "battle": {
+    "3DOF": {
+      "n": 400,
+      "errors": 0,
+      "collision": 0.01,
+      "crash": 0.0,
+      "score_v2": 0.4725,
+      "score_v3": 0.6725,
+      "kill_win": 0.04,
+      "timeout": 0.8275,
+      "viol_deck": 0.0,
+      "viol_over_g": 0.0,
+      "first_error": ""
+    },
+    "6DOF": {
+      "n": 400,
+      "errors": 0,
+      "collision": 0.0475,
+      "crash": 0.0,
+      "score_v2": 0.465,
+      "score_v3": 0.5275,
+      "kill_win": 0.0,
+      "timeout": 0.9525,
+      "viol_deck": 0.0,
+      "viol_over_g": 0.0,
+      "first_error": ""
+    }
+  },
+  "bc": {
+    "3DOF": {
+      "teacher": "BT-M",
+      "sixdof": false,
+      "episodes": 300,
+      "samples": 161973,
+      "r2": {
+        "weighted": 0.907464644591971,
+        "per_channel": [
+          0.9566317217376593,
+          0.9722032425716917,
+          0.6864551040187215
+        ],
+        "n_train": 145776,
+        "n_val": 16197
+      },
+      "eval": {
+        "BT-v2": {
+          "score": 0.5375,
+          "wez": 0.5349999999999999,
+          "outcomes": {
+            "timeout": 38,
+            "gun_kill": 2
+          }
+        }
+      },
+      "seconds": 58
+    },
+    "6DOF": {
+      "teacher": "BT-M",
+      "sixdof": true,
+      "episodes": 300,
+      "samples": 173047,
+      "r2": {
+        "weighted": 0.7836962896086426,
+        "per_channel": [
+          0.9550172683546401,
+          0.8612185672973742,
+          0.6534202639882616
+        ],
+        "n_train": 155743,
+        "n_val": 17304
+      },
+      "eval": {
+        "BT-v2": {
+          "score": 0.4875,
+          "wez": 0.06875000000000003,
+          "outcomes": {
+            "timeout": 37,
+            "crash": 1,
+            "collision": 1,
+            "gun_kill": 1
+          }
+        }
+      },
+      "seconds": 131
+    }
+  }
+}

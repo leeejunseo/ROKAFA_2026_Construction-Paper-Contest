@@ -1,0 +1,22 @@
+{
+  "_설명": "C안 학습 설정. 배포 태그에 이 파일이 함께 고정된다. 팀 결정(D1·D5·D7)이 바뀌면 이 파일만 고치고 새 태그를 단다.",
+  "tag": null,
+  "baseline": "btm",
+  "train_opponents": ["btm", "v2"],
+  "heldout_opponents": ["v1", "v3", "school"],
+  "seeds": 20,
+  "generations": 300,
+  "keep_checkpoints": [200, 300],
+  "checkpoint_every": 50,
+  "pop": 32,
+  "episodes": 8,
+  "roll_rate_max_3dof": null,
+  "accept_fresh": false,
+  "accept_episodes": 16,
+  "kinds": {
+    "init":     {"script": "dfxai.rl.train_es", "sigma": 0.05, "lr": 0.01, "outdir": "init"},
+    "residual": {"script": "dfxai.rl.train_es_hybrid", "sigma": 0.05, "lr": 0.01, "beta": 0.35, "outdir": "res"},
+    "gating":   {"script": "dfxai.rl.train_es_hybrid", "sigma": 0.05, "lr": 0.01, "outdir": "gate", "needs": "init"},
+    "bto":      {"script": "dfxai.rl.train_es_bt", "sigma": 0.10, "lr": 0.05, "outdir": "bto"}
+  }
+}

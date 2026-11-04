@@ -18,8 +18,8 @@ import math
 import numpy as np
 
 from .base import Policy
-from .bt import BTPolicy
 from .hybrid import MLPPolicy
+from .registry import make_bt, canon
 from ..config import OBS_DIM
 
 
@@ -54,11 +54,12 @@ class GateNet:
 
 
 class GatingPolicy(Policy):
-    def __init__(self, rl: MLPPolicy, bt_version: int = 2, gate_hidden=(8,),
-                 gate_params: np.ndarray | None = None, seed: int = 0):
+    def __init__(self, rl: MLPPolicy, bt_version=2, gate_hidden=(8,),
+                 gate_params: np.ndarray | None = None, seed: int = 0, bt=None):
+        # bt: 섞을 행동트리 이름(registry). 본실험은 BT-v2, C안은 기준선 BT
         self.rl = rl
-        self.bt_version = int(bt_version)
-        self.bt = BTPolicy(version=self.bt_version)
+        self.bt_name = canon(bt if bt is not None else bt_version)
+        self.bt = make_bt(self.bt_name)
         self.gate = GateNet(hidden=gate_hidden, params=gate_params, seed=seed)
         self.name = "GATE"
         self.last_node = ""
@@ -97,7 +98,7 @@ class GatingPolicy(Policy):
         np.savez(path, kind=np.array("gating"), gate_flat=self.gate.flat,
                  gate_hidden=np.array(self.gate.hidden),
                  rl_flat=self.rl.flat, rl_hidden=np.array(self.rl.hidden),
-                 rl_out_act=np.array(self.rl.out_act), bt_version=np.array(self.bt_version))
+                 rl_out_act=np.array(self.rl.out_act), bt_name=np.array(self.bt_name))
 
     @staticmethod
     def load(path: str) -> "GatingPolicy":
@@ -105,6 +106,7 @@ class GatingPolicy(Policy):
         assert str(d["kind"]) == "gating", f"{path} 는 게이팅형 체크포인트가 아닙니다"
         rl = MLPPolicy(hidden=tuple(int(x) for x in d["rl_hidden"]), params=d["rl_flat"],
                        out_act=str(d["rl_out_act"]))
-        return GatingPolicy(rl, bt_version=int(d["bt_version"]),
+        bt = str(d["bt_name"]) if "bt_name" in d.files else int(d["bt_version"])
+        return GatingPolicy(rl, bt=bt,
                             gate_hidden=tuple(int(x) for x in d["gate_hidden"]),
                             gate_params=d["gate_flat"])

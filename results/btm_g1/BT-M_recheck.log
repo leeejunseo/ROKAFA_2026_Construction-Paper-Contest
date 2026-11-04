@@ -1,0 +1,48 @@
+3자유도 완료 {'score_v2': 0.4725, 'score_v3': 0.6725, 'collision': 0.01, 'crash_self': 0.0}
+
+
+     JSBSim Flight Dynamics Model v1.3.1 [GitHub build 1837/commit 3b25f25e49b42d0489c04ac805674fc1450ca579] May 17 2026 14:28:34
+            [JSBSim-ML v2.0]
+
+JSBSim startup beginning ...
+
+
+
+     JSBSim Flight Dynamics Model v1.3.1 [GitHub build 1837/commit 3b25f25e49b42d0489c04ac805674fc1450ca579] May 17 2026 14:28:34
+            [JSBSim-ML v2.0]
+
+JSBSim startup beginning ...
+
+
+
+     JSBSim Flight Dynamics Model v1.3.1 [GitHub build 1837/commit 3b25f25e49b42d0489c04ac805674fc1450ca579] May 17 2026 14:28:34
+            [JSBSim-ML v2.0]
+
+JSBSim startup beginning ...
+
+
+
+     JSBSim Flight Dynamics Model v1.3.1 [GitHub build 1837/commit 3b25f25e49b42d0489c04ac805674fc1450ca579] May 17 2026 14:28:34
+            [JSBSim-ML v2.0]
+
+JSBSim startup beginning ...
+
+
+
+     JSBSim Flight Dynamics Model v1.3.1 [GitHub build 1837/commit 3b25f25e49b42d0489c04ac805674fc1450ca579] May 17 2026 14:28:34
+            [JSBSim-ML v2.0]
+
+JSBSim startup beginning ...
+
+6자유도 완료 {'score_v2': 0.465, 'score_v3': 0.5275, 'collision': 0.0475, 'crash_self': 0.0}
+행동복제 {'n_samples': 161973, 'r2_per_channel': [0.8888636532836358, 0.9617606466303914, 0.6570335564499057], 'r2_weighted': 0.8606848187814099, 'learner': 'torch (dfxai.rl.pretrain_bc.fit)'}
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\Users\User\Desktop\공군사관학교\생도대\대회\공사생도논문경진대회\dfxai\experiments\validate_btm.py", line 237, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\User\Desktop\공군사관학교\생도대\대회\공사생도논문경진대회\dfxai\experiments\validate_btm.py", line 233, in main
+    print(report(s3, s6, bc, sur3, sur6, v, os.path.join(a.outdir, "G1_report.md"), a.variant))
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'cp949' codec can't encode character '\u2013' in position 86: illegal multibyte sequence

@@ -29,8 +29,8 @@ from multiprocessing import Pool
 
 from ..config import config_dump, EngagementConfig, AircraftConfig
 from ..env import DogfightEnv, run_episode
-from ..agents.bt import BTPolicy
 from ..agents.hybrid import MLPPolicy, HybridPolicy
+from ..agents.registry import make_bt, label
 
 
 # 민감도 분석용 환경 옵션. run() 이 설정하면 워커 프로세스에 인자로 전달됩니다.
@@ -82,13 +82,15 @@ def build_condition(spec: dict):
 
     kind: bt (행동트리) | rl (순수 학습) | hybrid (선형 혼합) |
           bto (상수 최적화 행동트리, bt_param.py) | shield (감독형 혼합, shield.py)
+    행동트리는 spec["bt"](registry 이름, C안) 또는 spec["bt_version"](정수, 본실험)으로 고른다.
     """
     kind = spec["kind"]
+    bt = spec.get("bt", spec.get("bt_version"))
     if kind == "bt":
-        return BTPolicy(version=spec.get("bt_version", 2))
+        return make_bt(bt if bt is not None else 2)
     if kind == "bto":
-        from ..agents.bt_param import ParamBTPolicy
-        return ParamBTPolicy.load(spec["ckpt"])
+        from ..rl.train_es_bt import load_tunable
+        return load_tunable(spec["ckpt"])
     if kind == "residual":
         from ..agents.residual import ResidualPolicy
         return ResidualPolicy.load(spec["ckpt"])
@@ -100,16 +102,15 @@ def build_condition(spec: dict):
         return rl
     if kind == "shield":
         from ..agents.shield import ShieldPolicy
-        return ShieldPolicy(rl, bt_version=spec.get("bt_version", 3))
-    return HybridPolicy(BTPolicy(version=spec.get("bt_version", 2)),
-                        rl, alpha=float(spec["alpha"]))
+        return ShieldPolicy(rl, bt=bt if bt is not None else 3)
+    return HybridPolicy(make_bt(bt if bt is not None else 2), rl, alpha=float(spec["alpha"]))
 
 
 def _one_job(args):
     spec, opp_version, seed, side, record, *rest = args
     env_opts = rest[0] if rest else {}
     pol = build_condition(spec)
-    opp = BTPolicy(version=opp_version)
+    opp = make_bt(opp_version)
     env = make_env(env_opts)
     alpha = float(spec.get("alpha", 1.0 if spec["kind"] in ("rl", "shield", "residual", "gating") else 0.0))
 
@@ -129,7 +130,7 @@ def _one_job(args):
         cond=spec["name"], kind=spec["kind"], alpha=alpha,
         bt_version=spec.get("bt_version", -1), ckpt=spec.get("ckpt", ""),
         budget=spec.get("budget", -1), train_seed=spec.get("train_seed", -1),
-        opponent=f"BT-v{opp_version}", seed=seed, side=side,
+        opponent=label(opp_version), seed=seed, side=side,
         score=score, win=int(win == 1), draw=int(win == 0), loss=int(win == -1),
         outcome=res.outcome, duration=res.duration,
         damage_dealt=res.damage_dealt if side == 0 else res.damage_taken,
@@ -234,7 +235,8 @@ def main():
     ap.add_argument("--ckpts", nargs="*", default=[])
     ap.add_argument("--alphas", nargs="*", type=float,
                     default=[0.25, 0.5, 0.75, 1.0])
-    ap.add_argument("--opponents", nargs="*", type=int, default=[2, 3])
+    ap.add_argument("--opponents", nargs="*", default=["2", "3"],
+                    help="평가 상대 행동트리(정수 1–3 또는 registry 이름 doc, school)")
     ap.add_argument("--n-seeds", type=int, default=100)
     ap.add_argument("--workers", type=int, default=1)
     ap.add_argument("--outdir", type=str, default="results/main")
@@ -301,7 +303,8 @@ def main():
             env_opts[key] = val
     if a.sixdof:
         env_opts["sixdof"] = True
-    run(conds, tuple(a.opponents), a.n_seeds, a.workers, a.outdir,
+    opps = tuple(int(o) if str(o).isdigit() else o for o in a.opponents)
+    run(conds, opps, a.n_seeds, a.workers, a.outdir,
         a.record_episodes, env_opts=env_opts)
 
 

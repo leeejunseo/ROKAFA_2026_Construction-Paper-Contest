@@ -256,6 +256,8 @@ def build_tree_v3() -> Node:
 
 
 _BUILDERS = {1: build_tree_v1, 2: build_tree_v2, 3: build_tree_v3}
+# 감독형 혼합(shield.py)이 가로챌 안전 행동 노드 (agents/registry.py 의 형식)
+_SAFETY = {1: ("merge_offset",), 2: ("merge_offset",), 3: ("merge_offset", "level_climb")}
 
 
 class BTPolicy(Policy):
@@ -268,6 +270,7 @@ class BTPolicy(Policy):
         self.hard_deck = hard_deck
         self.name = f"BT-v{version}"
         self.last_node = ""
+        self.SAFETY_NODES = _SAFETY[version]
 
     def act(self, obs: np.ndarray) -> np.ndarray:
         bb = denorm(obs)

@@ -20,8 +20,8 @@ from __future__ import annotations
 import numpy as np
 
 from .base import Policy
-from .bt import BTPolicy
 from .hybrid import MLPPolicy
+from .registry import make_bt, canon
 
 
 def _wrap_bank(x: float) -> float:
@@ -30,11 +30,12 @@ def _wrap_bank(x: float) -> float:
 
 
 class ResidualPolicy(Policy):
-    def __init__(self, beta: float = 0.35, bt_version: int = 2, hidden=(32, 32),
-                 params: np.ndarray | None = None, seed: int = 0):
+    def __init__(self, beta: float = 0.35, bt_version=2, hidden=(32, 32),
+                 params: np.ndarray | None = None, seed: int = 0, bt=None):
+        # bt: 기본 지령을 낼 행동트리 이름(registry). 본실험은 BT-v2, C안은 기준선 BT
         self.beta = float(beta)
-        self.bt_version = int(bt_version)
-        self.bt = BTPolicy(version=self.bt_version)
+        self.bt_name = canon(bt if bt is not None else bt_version)
+        self.bt = make_bt(self.bt_name)
         if params is None:
             rng = np.random.default_rng(seed)
             proto = MLPPolicy(hidden=hidden, seed=seed)
@@ -74,11 +75,12 @@ class ResidualPolicy(Policy):
     def save(self, path: str) -> None:
         np.savez(path, kind=np.array("residual"), flat=self.mlp.flat,
                  hidden=np.array(self.mlp.hidden), beta=np.array(self.beta),
-                 bt_version=np.array(self.bt_version))
+                 bt_name=np.array(self.bt_name))
 
     @staticmethod
     def load(path: str) -> "ResidualPolicy":
         d = np.load(path)
         assert str(d["kind"]) == "residual", f"{path} 는 잔차형 체크포인트가 아닙니다"
-        return ResidualPolicy(beta=float(d["beta"]), bt_version=int(d["bt_version"]),
+        bt = str(d["bt_name"]) if "bt_name" in d.files else int(d["bt_version"])
+        return ResidualPolicy(beta=float(d["beta"]), bt=bt,
                               hidden=tuple(int(x) for x in d["hidden"]), params=d["flat"])

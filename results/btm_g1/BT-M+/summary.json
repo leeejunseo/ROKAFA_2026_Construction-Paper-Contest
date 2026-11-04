@@ -1,0 +1,178 @@
+{
+ "s3": {
+  "n_total": 400,
+  "n_ok": 400,
+  "n_err": 0,
+  "collision": 0.02,
+  "crash_self": 0.0,
+  "viol_deck": 0.0,
+  "viol_over_g": 0.0,
+  "viol_sep": 0.005795538724683381,
+  "trim_ok": 1.0,
+  "seconds": 7.399892091751099,
+  "score_v2": 0.4325,
+  "score_v2_ci": [
+   0.38,
+   0.4825
+  ],
+  "outcomes_v2": {
+   "timeout:무": 88,
+   "gun_kill:패": 31,
+   "gun_kill:승": 4,
+   "timeout:패": 38,
+   "collision:무": 1,
+   "timeout:승": 38
+  },
+  "score_v3": 0.6325,
+  "score_v3_ci": [
+   0.5775,
+   0.6875
+  ],
+  "outcomes_v3": {
+   "collision:무": 7,
+   "timeout:무": 48,
+   "timeout:승": 96,
+   "gun_kill:승": 3,
+   "timeout:패": 21,
+   "gun_kill:패": 25
+  },
+  "node_freq": {
+   "rate_turn_lead_or_two_circle": 0.7644582112252847,
+   "high_g_pull": 0.09710372074043848,
+   "turn_circle_entry": 0.03078513929591572,
+   "break_turn_into_threat": 0.029556330452201653,
+   "relax_pull": 0.01749545572578551,
+   "recover_lift_vector_up": 0.015812219460622473,
+   "lead_pursuit_gun": 0.01559891679341173,
+   "rolling_tuck_under_jink": 0.01262195348147049,
+   "lateral_offset": 0.01214897800200319,
+   "lag_idle_reposition": 0.0044190748228660455
+  }
+ },
+ "s6": {
+  "n_total": 400,
+  "n_ok": 400,
+  "n_err": 0,
+  "collision": 0.035,
+  "crash_self": 0.0,
+  "viol_deck": 0.0,
+  "viol_over_g": 0.026297347588880936,
+  "viol_sep": 0.0017710410021448853,
+  "trim_ok": 1.0,
+  "seconds": 166.18249201774597,
+  "score_v2": 0.5325,
+  "score_v2_ci": [
+   0.495,
+   0.57
+  ],
+  "outcomes_v2": {
+   "timeout:무": 131,
+   "timeout:승": 38,
+   "collision:무": 6,
+   "timeout:패": 23,
+   "gun_kill:패": 2
+  },
+  "score_v3": 0.565,
+  "score_v3_ci": [
+   0.5225,
+   0.605
+  ],
+  "outcomes_v3": {
+   "timeout:무": 112,
+   "collision:무": 8,
+   "timeout:패": 26,
+   "gun_kill:승": 3,
+   "timeout:승": 50,
+   "gun_kill:패": 1
+  },
+  "node_freq": {
+   "rate_turn_lead_or_two_circle": 0.6739080732480642,
+   "turn_circle_entry": 0.21806181653473675,
+   "high_g_pull": 0.04087311002307875,
+   "recover_lift_vector_up": 0.03333692815391584,
+   "break_turn_into_threat": 0.012044086879623838,
+   "lead_pursuit_gun": 0.008416193947760067,
+   "lateral_offset": 0.005978905592821862,
+   "relax_pull": 0.005940081530530811,
+   "rolling_tuck_under_jink": 0.0009662877725772706,
+   "lag_idle_reposition": 0.000474516316890624
+  }
+ },
+ "bc": {
+  "n_samples": 163617,
+  "r2_per_channel": [
+   0.8882248369918248,
+   0.9370721703105374,
+   0.723984529222641
+  ],
+  "r2_weighted": 0.8634693952686873,
+  "learner": "sklearn MLPRegressor(tanh 32-32) — torch 없음"
+ },
+ "sur3": {
+  "d_star": 17.0,
+  "d_star_multi": {
+   "0.9": 17.0,
+   "0.95": 17.0,
+   "0.99": 17.0
+  },
+  "f4": 0.7008622002739414,
+  "n_samples": 30714
+ },
+ "sur6": {
+  "d_star": 17.0,
+  "d_star_multi": {
+   "0.9": 17.0,
+   "0.95": 17.0,
+   "0.99": 17.0
+  },
+  "f4": 0.5025553435639962,
+  "n_samples": 34529
+ },
+ "verdict": [
+  [
+   "E1 3자유도 400교전 오류 없음",
+   "400/400",
+   true
+  ],
+  [
+   "E2 3자유도 공중충돌 ≤ 10%",
+   "0.020",
+   true
+  ],
+  [
+   "E3 3자유도 지면충돌 ≤ 5%",
+   "0.000",
+   true
+  ],
+  [
+   "E4 3자유도 BT-v2 상대 점수 ≥ 0.45",
+   "0.432 [0.380, 0.482]",
+   false
+  ],
+  [
+   "E1 6자유도 400교전 오류 없음",
+   "400/400",
+   true
+  ],
+  [
+   "E2 6자유도 공중충돌 ≤ 10%",
+   "0.035",
+   true
+  ],
+  [
+   "E3 6자유도 지면충돌 ≤ 5%",
+   "0.000",
+   true
+  ],
+  [
+   "E4 6자유도 BT-v2 상대 점수 ≥ 0.45",
+   "0.532 [0.495, 0.570]",
+   true
+  ],
+  [
+   "E5 행동복제 R² ≥ 0.9",
+   "0.863 (채널별 0.888, 0.937, 0.724)",
+   false
+  ]
+ ]
+}

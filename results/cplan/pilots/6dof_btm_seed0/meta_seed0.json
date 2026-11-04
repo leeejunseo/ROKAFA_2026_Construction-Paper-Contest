@@ -1,0 +1,52 @@
+{
+  "tag": "seed0",
+  "args": {
+    "script": "train_es",
+    "generations": 50,
+    "pop": 32,
+    "episodes": 8,
+    "sigma": 0.05,
+    "lr": 0.01,
+    "seed": 0,
+    "workers": 11,
+    "bt_version": 2,
+    "bt": "btm",
+    "opponents": [
+      "btm",
+      "v2"
+    ],
+    "sixdof": true,
+    "roll_rate_max": null,
+    "resume": true,
+    "stop_after": null,
+    "accept_fresh": false,
+    "accept_episodes": null,
+    "outdir": "results/cplan/pilot_6dof_btm",
+    "checkpoint_every": 10,
+    "tag": "seed0",
+    "alpha_curriculum": false,
+    "init": "results/cplan/bc/bc_btm_6dof.npz",
+    "fitness": "default",
+    "no_accept_test": false
+  },
+  "git": {
+    "commit": "560959e440495771f0cf8512ea457b5a0ed7a00d",
+    "describe": "560959e-dirty",
+    "code_dirty": true
+  },
+  "started": "2026-11-04 18:03:23",
+  "python": "3.13.9",
+  "numpy": "2.4.2",
+  "jsbsim": "1.3.1",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "cpu_count": 12,
+  "resumes": [],
+  "env_vars": {
+    "OMP_NUM_THREADS": "1",
+    "OPENBLAS_CORETYPE": null,
+    "NPY_DISABLE_CPU_FEATURES": null,
+    "MKL_CBWR": null
+  },
+  "finished": "2026-11-04 18:51:36",
+  "last_gen": 50
+}

@@ -1,0 +1,28 @@
+{
+  "teacher": "BT-v2",
+  "sixdof": false,
+  "episodes": 300,
+  "samples": 161694,
+  "r2": {
+    "weighted": 0.9464175346361782,
+    "per_channel": [
+      0.9530034496844116,
+      0.5735826446527749,
+      null
+    ],
+    "n_train": 145525,
+    "n_val": 16169
+  },
+  "eval": {
+    "BT-v2": {
+      "score": 0.5,
+      "wez": 0.4374999999999997,
+      "outcomes": {
+        "gun_kill": 4,
+        "timeout": 34,
+        "collision": 2
+      }
+    }
+  },
+  "seconds": 27
+}

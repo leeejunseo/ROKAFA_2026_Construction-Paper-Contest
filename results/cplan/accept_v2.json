@@ -1,0 +1,194 @@
+{
+  "bt": "BT-v2",
+  "passed": false,
+  "quick": false,
+  "rows": [
+    [
+      "형식",
+      "Policy 상속",
+      true,
+      "BTPolicy"
+    ],
+    [
+      "형식",
+      "act() 출력 [-1, 1]^3 유한값",
+      true,
+      "범위 [-1.000, 1.000]"
+    ],
+    [
+      "형식",
+      "last_node 기록",
+      true,
+      "발동 노드 ['merge_offset', 'pursuit_3d_max_g']"
+    ],
+    [
+      "형식",
+      "기억 없음 (같은 관측 = 같은 지령, 순서 무관)",
+      true,
+      "D* 는 관측의 함수인 정책을 전제로 한다. 내부 상태가 있으면 실패"
+    ],
+    [
+      "형식",
+      "SAFETY_NODES 공개",
+      true,
+      "('merge_offset',)"
+    ],
+    [
+      "형식",
+      "PARAM_SPEC (파라미터 최적화형용)",
+      false,
+      "행동트리 'v2' 는 PARAM_SPEC(조정 가능한 상수)을 공개하지 않습니다"
+    ],
+    [
+      "형식",
+      "rule_count()",
+      false,
+      "논문 3.2절에 보고할 규칙 수"
+    ],
+    [
+      "3DOF",
+      "① 400교전 오류 없음",
+      true,
+      "오류 0회 "
+    ],
+    [
+      "3DOF",
+      "② 공중충돌 ≤ 10%",
+      true,
+      "0.090"
+    ],
+    [
+      "3DOF",
+      "② 지면충돌(자기 추락) ≤ 5%",
+      true,
+      "0.037"
+    ],
+    [
+      "3DOF",
+      "③ BT-v2 상대 점수 ≥ 0.45",
+      true,
+      "0.500"
+    ],
+    [
+      "3DOF",
+      "④ 행동 복제 R² ≥ 0.9",
+      true,
+      "0.946 (채널별 [0.953, 0.574, None])"
+    ],
+    [
+      "6DOF",
+      "① 400교전 오류 없음",
+      true,
+      "오류 0회 "
+    ],
+    [
+      "6DOF",
+      "② 공중충돌 ≤ 10%",
+      true,
+      "0.055"
+    ],
+    [
+      "6DOF",
+      "② 지면충돌(자기 추락) ≤ 5%",
+      false,
+      "0.128"
+    ],
+    [
+      "6DOF",
+      "③ BT-v2 상대 점수 ≥ 0.45",
+      true,
+      "0.500"
+    ],
+    [
+      "6DOF",
+      "④ 행동 복제 R² ≥ 0.9",
+      true,
+      "0.968 (채널별 [0.972, 0.714, None])"
+    ]
+  ],
+  "battle": {
+    "3DOF": {
+      "n": 400,
+      "errors": 0,
+      "collision": 0.09,
+      "crash": 0.0375,
+      "score_v2": 0.5,
+      "score_v3": 0.8425,
+      "kill_win": 0.305,
+      "timeout": 0.5175,
+      "viol_deck": 0.04869121789500656,
+      "viol_over_g": 0.044372213236256924,
+      "first_error": ""
+    },
+    "6DOF": {
+      "n": 400,
+      "errors": 0,
+      "collision": 0.055,
+      "crash": 0.1275,
+      "score_v2": 0.5,
+      "score_v3": 0.775,
+      "kill_win": 0.215,
+      "timeout": 0.475,
+      "viol_deck": 0.08599446307119658,
+      "viol_over_g": 0.5546802487540808,
+      "first_error": ""
+    }
+  },
+  "bc": {
+    "3DOF": {
+      "teacher": "BT-v2",
+      "sixdof": false,
+      "episodes": 300,
+      "samples": 161694,
+      "r2": {
+        "weighted": 0.9464175346361782,
+        "per_channel": [
+          0.9530034496844116,
+          0.5735826446527749,
+          null
+        ],
+        "n_train": 145525,
+        "n_val": 16169
+      },
+      "eval": {
+        "BT-v2": {
+          "score": 0.5,
+          "wez": 0.4374999999999997,
+          "outcomes": {
+            "gun_kill": 4,
+            "timeout": 34,
+            "collision": 2
+          }
+        }
+      },
+      "seconds": 27
+    },
+    "6DOF": {
+      "teacher": "BT-v2",
+      "sixdof": true,
+      "episodes": 300,
+      "samples": 161007,
+      "r2": {
+        "weighted": 0.9675733721461801,
+        "per_channel": [
+          0.9715932185763078,
+          0.713679705184761,
+          null
+        ],
+        "n_train": 144907,
+        "n_val": 16100
+      },
+      "eval": {
+        "BT-v2": {
+          "score": 0.6,
+          "wez": 0.02,
+          "outcomes": {
+            "crash": 20,
+            "timeout": 20
+          }
+        }
+      },
+      "seconds": 95
+    }
+  }
+}

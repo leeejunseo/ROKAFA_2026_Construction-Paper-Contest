@@ -24,30 +24,47 @@
   회귀하고 싶지만, 정책 출력 형식을 유지하기 위해 그대로 둡니다. 복제 정확도는
   R^2 로 보고하며, 완벽할 필요는 없습니다(ES 가 이어서 다듬습니다).
 * torch 로 학습하고 MLPPolicy 포맷(flat, hidden)으로 저장합니다.
+
+C안(2026-11, E4): 교사·상대를 이름으로 고른다(--teacher btm, registry). --sixdof 이면 6자유도 교전에서
+(관측, 행동)을 모으고, --workers 로 나눠 모은다(교전마다 상대·α 를 미리 뽑아 두므로 작업자 수와 무관하게
+같은 데이터). --save-data 로 수집 자료를 따로 남기고, 복제 정확도는 <out>.json 에 적는다.
+아무것도 안 주면 기존과 같은 3자유도 BT-v2 복제다.
 """
 from __future__ import annotations
 import argparse, os, time
 import numpy as np
 
-from ..env import DogfightEnv, run_episode
-from ..agents.bt import BTPolicy
+from ..env import run_episode
+from ..agents.registry import make_bt, label
 from ..agents.hybrid import MLPPolicy
 from ..config import OBS_DIM, ACTION_DIM
+from .es_runtime import make_env, env_opts as _env_opts
 
 
-def collect(teacher: int = 2, opponents=(1, 2, 3), n_episodes: int = 300,
-            seed0: int = 200_000, rng_seed: int = 0) -> tuple[np.ndarray, np.ndarray]:
+def _collect_one(args):
+    teacher, ov, seed, alpha, opts = args
+    _, obs, act = run_episode(make_bt(teacher), make_bt(ov), seed=seed, alpha=alpha,
+                              env=make_env(opts), record=True)
+    return obs, act
+
+
+def collect(teacher=2, opponents=(1, 2, 3), n_episodes: int = 300,
+            seed0: int = 200_000, rng_seed: int = 0, env_opts: dict | None = None,
+            workers: int = 1) -> tuple[np.ndarray, np.ndarray]:
     """교사 BT 의 (관측, 행동) 로그. 진영을 번갈아 청/홍 양쪽 관점을 모읍니다."""
     rng = np.random.default_rng(rng_seed)
-    X, Y = [], []
+    jobs = []
     for i in range(n_episodes):
-        ov = int(rng.choice(opponents))
+        ov = opponents[int(rng.choice(len(opponents)))]     # rng.choice(opponents) 와 같은 난수 소비
         alpha = float(rng.uniform(0.0, 1.0))
-        env = DogfightEnv()
-        _, obs, act = run_episode(BTPolicy(version=teacher), BTPolicy(version=ov),
-                                  seed=seed0 + i, alpha=alpha, env=env, record=True)
-        X.append(obs); Y.append(act)
-    X = np.concatenate(X); Y = np.concatenate(Y)
+        jobs.append((teacher, ov, seed0 + i, alpha, env_opts))
+    if workers > 1:
+        from multiprocessing import Pool
+        with Pool(workers) as p:
+            out = p.map(_collect_one, jobs, chunksize=2)
+    else:
+        out = [_collect_one(j) for j in jobs]
+    X = np.concatenate([o for o, _ in out]); Y = np.concatenate([a for _, a in out])
     X[:, -1] = np.random.default_rng(rng_seed + 1).uniform(0.0, 1.0, X.shape[0])
     return X, Y
 
@@ -84,6 +101,13 @@ def fit(X: np.ndarray, Y: np.ndarray, hidden=(32, 32), epochs: int = 60,
                 pv = net(Xt[va]).numpy()
             r2 = 1.0 - ((pv - Y[va]) ** 2).mean(axis=0) / (Y[va].var(axis=0) + 1e-9)
             print(f"[bc ep {ep:3d}] val R2 per channel = {np.round(r2, 3)}  ({time.time()-t0:.0f}s)", flush=True)
+    net.eval()
+    with torch.no_grad():
+        pv = net(Xt[va]).numpy()
+    sse, var = ((pv - Y[va]) ** 2).mean(axis=0), Y[va].var(axis=0)
+    # 분산 가중 R² (D* 와 같은 정의): 상수 채널(예: 스로틀 고정)은 분모에 거의 기여하지 않는다
+    r2_ch = [float(1.0 - e / v) if v > 1e-6 else None for e, v in zip(sse, var)]
+    r2_w = float(1.0 - sse.sum() / max(var.sum(), 1e-12))
 
     # torch Linear 는 y = x W^T + b. MLPPolicy 는 x @ W + b 이므로 전치해서 평탄화.
     flat = []
@@ -97,38 +121,62 @@ def fit(X: np.ndarray, Y: np.ndarray, hidden=(32, 32), epochs: int = 60,
         ref = net(Xt[va[:64]]).numpy()
     mine = np.stack([pol.act(x) for x in X[va[:64]]])
     assert np.abs(ref - mine).max() < 1e-4, "torch -> MLPPolicy 가중치 이식 불일치"
+    pol.bc_r2 = dict(weighted=r2_w, per_channel=r2_ch, n_train=int(len(tr)), n_val=int(len(va)))
     return pol
 
 
-def evaluate(pol: MLPPolicy, opponent: int = 2, n_seeds: int = 30, seed0: int = 60_000) -> dict:
+def evaluate(pol: MLPPolicy, opponent=2, n_seeds: int = 30, seed0: int = 60_000,
+             env_opts: dict | None = None) -> dict:
     """복제본이 실제로 싸우는지 확인 (진영 교대)."""
     import collections
     oc = collections.Counter(); sc = []; wez = []
+    env = make_env(env_opts)
     for s in range(seed0, seed0 + n_seeds):
-        r = run_episode(pol, BTPolicy(version=opponent), seed=s, alpha=1.0)
+        r = run_episode(pol, make_bt(opponent), seed=s, alpha=1.0, env=env)
         sc.append(1.0 if r.winner == 1 else 0.5 if r.winner == 0 else 0.0); oc[r.outcome] += 1; wez.append(r.wez_time_blue)
-        r = run_episode(BTPolicy(version=opponent), pol, seed=s, alpha=0.0, alpha_red=1.0)
+        r = run_episode(make_bt(opponent), pol, seed=s, alpha=0.0, alpha_red=1.0, env=env)
         sc.append(1.0 if r.winner == -1 else 0.5 if r.winner == 0 else 0.0); oc[r.outcome] += 1; wez.append(r.wez_time_red)
     return dict(score=float(np.mean(sc)), wez=float(np.mean(wez)), outcomes=dict(oc))
 
 
 def main():
     ap = argparse.ArgumentParser(description="BT 행동 복제 사전학습")
-    ap.add_argument("--teacher", type=int, default=2)
+    ap.add_argument("--teacher", default="2", help="교사 행동트리 (정수 1–3 또는 이름 btm, btmplus, school)")
+    ap.add_argument("--opponents", nargs="*", default=["1", "2", "3"], help="수집 교전의 상대 행동트리")
     ap.add_argument("--episodes", type=int, default=300)
     ap.add_argument("--epochs", type=int, default=60)
     ap.add_argument("--out", default="results/es/bc_init.npz")
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--sixdof", action="store_true", help="6자유도 교전에서 수집·평가")
+    ap.add_argument("--roll-rate-max", type=float, default=None, help="3자유도 롤 속도 상한 [deg/s]")
+    ap.add_argument("--workers", type=int, default=1, help="수집 병렬 작업자 수")
+    ap.add_argument("--save-data", default=None, help="수집한 (관측, 행동)을 이 npz 로 저장")
+    ap.add_argument("--eval-opponents", nargs="*", default=["2", "3"], help="복제본 점검 상대")
     a = ap.parse_args()
+    import json, sys
+    sys.stdout.reconfigure(encoding="utf-8")
+    num = lambda v: int(v) if str(v).isdigit() else v          # 정수 이름은 기존과 같은 난수 소비
+    teacher, opps = num(a.teacher), tuple(num(o) for o in a.opponents)
+    opts = _env_opts(a.sixdof, a.roll_rate_max)
     t0 = time.time()
-    X, Y = collect(a.teacher, n_episodes=a.episodes, rng_seed=a.seed)
+    X, Y = collect(teacher, opps, n_episodes=a.episodes, rng_seed=a.seed, env_opts=opts, workers=a.workers)
     print(f"로그 수집: {X.shape[0]:,} 샘플 ({time.time()-t0:.0f}s)", flush=True)
+    if a.save_data:
+        os.makedirs(os.path.dirname(os.path.abspath(a.save_data)) or ".", exist_ok=True)
+        np.savez_compressed(a.save_data, obs=X, act=Y, teacher=str(teacher), sixdof=bool(a.sixdof))
     pol = fit(X, Y, epochs=a.epochs, seed=a.seed)
     os.makedirs(os.path.dirname(os.path.abspath(a.out)) or ".", exist_ok=True)
     pol.save(a.out)
-    for ov in (2, 3):
-        print(f"복제본 vs BT-v{ov}:", evaluate(pol, ov), flush=True)
-    print(f"저장: {a.out}  (교사 BT-v{a.teacher})")
+    rep = dict(teacher=label(teacher), opponents=[label(o) for o in opps], sixdof=bool(a.sixdof),
+               episodes=a.episodes, samples=int(X.shape[0]), r2=pol.bc_r2, eval={})
+    print(f"복제 정확도(검증 자료): 분산 가중 R² {pol.bc_r2['weighted']:.3f}, 채널별 {pol.bc_r2['per_channel']}")
+    for ov in a.eval_opponents:
+        r = evaluate(pol, num(ov), env_opts=opts)
+        rep["eval"][label(ov)] = r
+        print(f"복제본 vs {label(ov)}:", r, flush=True)
+    with open(os.path.splitext(a.out)[0] + ".json", "w", encoding="utf-8") as f:
+        json.dump(rep, f, indent=2, ensure_ascii=False)
+    print(f"저장: {a.out}  (교사 {label(teacher)})")
 
 
 if __name__ == "__main__":

@@ -14,6 +14,9 @@ train_es_bt.py(BTO) 와 같은 방식이다: ES 루프(미러 샘플링·순위 
     python -m dfxai.rl.train_es_hybrid --kind residual --beta 0.35 --seed 0 --generations 200
     python -m dfxai.rl.train_es_hybrid --kind gating --rl-ckpt results/es/ckpt_seed11_gen00300.npz --seed 0
 
+C안(2026-11): --bt 로 기준선 행동트리를 이름으로 고르고(registry), --opponents·--sixdof·--resume 는
+train_es.py 와 같다. 아무것도 안 주면 기존 3자유도 학습과 똑같다.
+
 학습 중 진단: 매 세대 현재 정책을 같은 시드로 평가하면서 잔차형은 |δ| 평균을,
 게이팅형은 g 의 평균·표준편차를 history 에 남긴다. 잔차형의 |δ| 가 0 에 붙거나
 게이팅형의 g 표준편차가 0 에 붙으면 "학습은 되는데 의도한 대로 안 되는" 경우다
@@ -24,13 +27,13 @@ import argparse, json, os, time
 import numpy as np
 from multiprocessing import Pool
 
-from ..env import DogfightEnv
-from ..agents.bt import BTPolicy
+from ..agents.registry import make_bt
 from ..agents.hybrid import MLPPolicy
 from ..agents.residual import ResidualPolicy
 from ..agents.gating import GatingPolicy
 from .shaping import potential, episode_fitness
 from .train_es import _rank_transform, _dump_history
+from .es_runtime import make_env, env_opts, save_state, load_state, write_meta, fresh_check, pmap
 
 
 def _make(kind: str, theta: np.ndarray, cfg: dict):
@@ -45,10 +48,10 @@ def _make(kind: str, theta: np.ndarray, cfg: dict):
 def _rollout(args):
     kind, theta, cfg, seeds, opps, preset, diag = args
     pol = _make(kind, theta, cfg)
-    env = DogfightEnv()
+    env = make_env(cfg.get("env_opts"))
     total, stat = 0.0, []
     for seed, ov in zip(seeds, opps):
-        red = BTPolicy(version=int(ov))
+        red = make_bt(ov)
         ob, orr = env.reset(seed=int(seed), alpha=1.0)
         pot_sum, n = 0.0, 0
         for _ in range(env.max_steps + 1):
@@ -70,7 +73,9 @@ def _rollout(args):
 def train(kind: str, generations=200, pop=32, sigma=0.05, lr=0.01, episodes=8, seed=0,
           workers=1, opponents=(1, 2), outdir="results/es_hybrid", checkpoint_every=50,
           tag="seed0", fitness="default", beta=0.35, bt_version=2, rl_ckpt=None,
-          gate_hidden=(8,)):
+          gate_hidden=(8,), env_opts=None, resume=False, stop_after=None, meta_args=None,
+          accept_fresh=False, accept_episodes=None):
+    """bt_version: 기준선 행동트리(정수 또는 registry 이름). 나머지 C안 인자는 train_es.train 과 같다."""
     os.makedirs(outdir, exist_ok=True)
     rng = np.random.default_rng(seed)
     if kind == "residual":
@@ -82,15 +87,23 @@ def train(kind: str, generations=200, pop=32, sigma=0.05, lr=0.01, episodes=8, s
         proto = GatingPolicy(rl, bt_version=bt_version, gate_hidden=gate_hidden, seed=seed)
         cfg = dict(bt_version=bt_version, gate_hidden=tuple(gate_hidden), rl_hidden=rl.hidden,
                    rl_flat=rl.flat, rl_out_act=rl.out_act)
+    cfg["env_opts"] = env_opts
     theta = proto.flat.copy()
     n_par = theta.size
     print(f"[{kind}] 학습 파라미터 {n_par}개, pop {pop}, 후보당 {episodes}교전, "
           f"σ {sigma}, lr {lr}" + (f", β {beta}" if kind == "residual" else f", rl {rl_ckpt}"),
           flush=True)
     lr_eff, n_accept, history = lr, 0, []
+    start = 1
+    st = load_state(outdir, tag, rng) if resume else None
+    if st:
+        start, theta, lr_eff, n_accept, history = st
+        start += 1
+        print(f"이어하기: {start - 1}세대까지 끝난 상태에서 시작 (수용 {n_accept}, lr {lr_eff:.4f})", flush=True)
+    write_meta(outdir, tag, meta_args or {}, gen=start - 1)
     pool = Pool(workers) if workers > 1 else None
-    t0 = time.time()
-    for gen in range(1, generations + 1):
+    t0 = time.time() - (history[-1]["elapsed"] if history else 0.0)
+    for gen in range(start, generations + 1):
         seeds = rng.integers(0, 10 ** 6, episodes)
         opps = np.array([opponents[i % len(opponents)] for i in range(episodes)])
         rng.shuffle(opps)
@@ -102,10 +115,22 @@ def train(kind: str, generations=200, pop=32, sigma=0.05, lr=0.01, episodes=8, s
                 else np.array([_rollout(j) for j in jobs]))
         grad = (_rank_transform(fits)[:, None] * eps).mean(axis=0) / sigma
         theta_new = theta + lr_eff * grad
-        chk = [(kind, theta, cfg, seeds, opps, fitness, True),
-               (kind, theta_new, cfg, seeds, opps, fitness, True)]
-        (f_old, d_old), (f_new, d_new) = (pool.map(_rollout, chk) if pool
-                                          else [_rollout(j) for j in chk])
+        if accept_fresh:                     # C안: 기울기와 다른 시드로 수용 판정 (train_es.py 참고)
+            ne = accept_episodes or episodes
+            c_seeds, c_opps = fresh_check(rng, opponents, ne)
+            r = pmap(pool, _rollout, [(kind, th, cfg, c_seeds[i:i + 1], c_opps[i:i + 1], fitness, True)
+                                      for th in (theta, theta_new) for i in range(ne)])
+
+            def pooled(rs):                  # 교전별 (평균, 표준편차) → 전체 근사
+                m = np.array([d[0] for _, d in rs]); s = np.array([d[1] for _, d in rs])
+                return float(m.mean()), float(np.sqrt(np.mean(s ** 2) + m.var()))
+            f_old, d_old = float(np.mean([f for f, _ in r[:ne]])), pooled(r[:ne])
+            f_new, d_new = float(np.mean([f for f, _ in r[ne:]])), pooled(r[ne:])
+        else:
+            chk = [(kind, theta, cfg, seeds, opps, fitness, True),
+                   (kind, theta_new, cfg, seeds, opps, fitness, True)]
+            (f_old, d_old), (f_new, d_new) = (pool.map(_rollout, chk) if pool
+                                              else [_rollout(j) for j in chk])
         accepted = f_new >= f_old
         if accepted:
             theta = theta_new; lr_eff = min(lr, lr_eff * 1.15)
@@ -127,10 +152,18 @@ def train(kind: str, generations=200, pop=32, sigma=0.05, lr=0.01, episodes=8, s
         if gen % checkpoint_every == 0 or gen == generations:
             _make(kind, theta, cfg).save(os.path.join(outdir, f"ckpt_{tag}_gen{gen:05d}.npz"))
             _dump_history(outdir, tag, history)
+        save_state(outdir, tag, gen, theta, rng, lr_eff, n_accept, history)
+        if stop_after and gen - start + 1 >= stop_after and gen < generations:
+            print(f"--stop-after {stop_after}: {gen}세대에서 멈춤 (--resume 으로 이어서)", flush=True)
+            if pool:
+                pool.close(); pool.join()
+            return theta, history
     if pool:
         pool.close(); pool.join()
-    history[-1]["final"] = True
-    _dump_history(outdir, tag, history)
+    if history and not history[-1].get("final"):
+        history[-1]["final"] = True
+        _dump_history(outdir, tag, history)
+    write_meta(outdir, tag, meta_args or {}, finished=True, gen=generations)
     return theta, history
 
 
@@ -150,14 +183,25 @@ def main():
     ap.add_argument("--fitness", default="default", choices=("default", "kill_first"))
     ap.add_argument("--beta", type=float, default=0.35, help="잔차형 보정 허용폭")
     ap.add_argument("--bt-version", type=int, default=2)
+    ap.add_argument("--bt", default=None, help="기준선 행동트리 이름(v1–v3, btm, btmplus, school). 주면 --bt-version 대신 씀")
+    ap.add_argument("--opponents", nargs="*", default=["1", "2"], help="학습 상대 행동트리(정수 또는 이름)")
+    ap.add_argument("--sixdof", action="store_true", help="6자유도(JSBSim F-16)에서 학습")
+    ap.add_argument("--roll-rate-max", type=float, default=None, help="3자유도 롤 속도 상한 [deg/s]")
+    ap.add_argument("--resume", action="store_true", help="state_<tag> 가 있으면 거기서 이어서 학습")
+    ap.add_argument("--stop-after", type=int, default=None, help="이번 실행에서 이 세대 수만 돌고 멈춤(시험용)")
     ap.add_argument("--rl-ckpt", default=None, help="게이팅형이 고정해서 쓸 학습 정책 체크포인트")
     ap.add_argument("--gate-hidden", type=int, nargs="*", default=[8])
+    ap.add_argument("--accept-fresh", action="store_true", help="수용 검사를 기울기와 다른 새 시드로 (C안)")
+    ap.add_argument("--accept-episodes", type=int, default=None, help="--accept-fresh 수용 검사 교전 수")
     a = ap.parse_args()
     outdir = a.outdir or ("results/es_res" if a.kind == "residual" else "results/es_gate")
     train(a.kind, a.generations, a.pop, a.sigma, a.lr, a.episodes, a.seed, a.workers,
+          opponents=tuple(a.opponents),
           outdir=outdir, checkpoint_every=a.checkpoint_every, tag=a.tag or f"seed{a.seed}",
-          fitness=a.fitness, beta=a.beta, bt_version=a.bt_version, rl_ckpt=a.rl_ckpt,
-          gate_hidden=tuple(a.gate_hidden))
+          fitness=a.fitness, beta=a.beta, bt_version=a.bt or a.bt_version, rl_ckpt=a.rl_ckpt,
+          gate_hidden=tuple(a.gate_hidden), env_opts=env_opts(a.sixdof, a.roll_rate_max),
+          resume=a.resume, stop_after=a.stop_after, meta_args=dict(script="train_es_hybrid", **vars(a)),
+          accept_fresh=a.accept_fresh, accept_episodes=a.accept_episodes)
 
 
 if __name__ == "__main__":

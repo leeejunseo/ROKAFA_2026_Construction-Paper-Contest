@@ -16,36 +16,42 @@ from __future__ import annotations
 import numpy as np
 
 from .base import Policy
-from .bt import BTPolicy, _AC
+from .bt import _AC
+from .registry import make_bt, safety_nodes
 from ..dynamics import max_load_factor
 from ..geometry import denorm
 
-_SAFETY_NODES = ("merge_offset", "level_climb")
 _G_CAP = 8.0
 
 
 class ShieldPolicy(Policy):
-    def __init__(self, rl: Policy, bt_version: int = 3):
+    """bt: 안전 노드를 가져올 행동트리 이름(registry). 본실험은 BT-v3, C안은 기준선 BT.
+    가로채는 노드는 그 행동트리의 SAFETY_NODES(BT-v3 는 합류 회피·하드덱 회복).
+    학습 정책의 G 상한은 그 행동트리의 자율 G 제한(g_cap, BT-M 은 7.7 G)이고, 없으면 본실험의 8 G."""
+
+    def __init__(self, rl: Policy, bt_version=3, bt=None):
         self.rl = rl
-        self.bt = BTPolicy(version=bt_version)
+        self.bt = make_bt(bt if bt is not None else bt_version)
+        self._safety = safety_nodes(self.bt)
+        self.g_cap = float(getattr(self.bt, "g_cap", _G_CAP))
         self.name = "SHD"
         self.last_node = ""
 
     def act(self, obs: np.ndarray) -> np.ndarray:
         a_bt = self.bt.act(obs)
-        if self.bt.last_node in _SAFETY_NODES:      # 안전 규칙이 발동 → 규칙이 지령
+        if self.bt.last_node in self._safety:       # 안전 규칙이 발동 → 규칙이 지령
             self.last_node = self.bt.last_node
             return a_bt
         a = np.asarray(self.rl.act(obs), dtype=np.float64).copy()
-        # 과G 방패: 현재 가용 G 가 8 G 를 넘을 때 지령을 8 G 에 해당하는 값으로 자른다.
+        # 과G 방패: 현재 가용 G 가 G 상한(self.g_cap)을 넘을 때 지령을 그 상한에 해당하는 값으로 자른다.
         d = denorm(obs)
         n_avail = max_load_factor(d["v_own"], d["h_own"], _AC)
-        if n_avail > _G_CAP:
-            a[1] = min(a[1], 2.0 * _G_CAP / n_avail - 1.0)
+        if n_avail > self.g_cap:
+            a[1] = min(a[1], 2.0 * self.g_cap / n_avail - 1.0)
         self.last_node = "rl"
         return np.clip(a, -1.0, 1.0)
 
     def complexity(self) -> dict:
-        d = {"shield_nodes": 2}
+        d = {"shield_nodes": len(self._safety)}
         d.update({f"rl_{k}": v for k, v in self.rl.complexity().items()})
         return d

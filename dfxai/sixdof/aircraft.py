@@ -92,6 +92,7 @@ class JSBAircraft:
         self.dt = self.fdm.get_delta_t()        # 1/120 s
         self.ctrl = TrackingController()
         self.trim_ok = True
+        self.nz_mean = 1.0
         # 연료: 교전마다 처음 양으로 다시 채우고 소모를 멈춘다. 3자유도처럼 질량이 일정하고
         # (약 9,360 kg, 3자유도 9,300 kg), 후기연소로 연료가 바닥나 다음 교전 트림이 실패하는 일도 없다.
         n_tank = 0
@@ -183,6 +184,7 @@ class JSBAircraft:
         f = self.fdm
         mu_c, n_c, thr_c = float(cmd[0]), float(cmd[1]), float(cmd[2])
         n_steps = max(1, int(round(duration / self.dt)))
+        nz_sum = 0.0
         for _ in range(n_steps):
             ail, elev, rud, thr = self.ctrl(mu_c, n_c, thr_c, self.bank_wind(),
                                             f["velocities/p-aero-rad_sec"],
@@ -192,6 +194,8 @@ class JSBAircraft:
             f["fcs/rudder-cmd-norm"] = rud
             f["fcs/throttle-cmd-norm"] = thr
             f.run()
+            nz_sum += f["accelerations/Nz"]
+        self.nz_mean = nz_sum / n_steps         # duration 동안의 평균 하중배수 (과G 판정용, C안 E3)
 
 
 def reference_state(h: float = 4000.0, v: float = 220.0) -> AircraftState:
