@@ -4,6 +4,7 @@ C안 평가 파이프라인 (E8): 상대별 평가 → 상호 대전 → D* → 
     python -m dfxai.cplan.evaluate all --env 6dof --workers 11
     python -m dfxai.cplan.evaluate opp    --env 6dof --workers 11      상대별 평가 + D*
     python -m dfxai.cplan.evaluate league --env 6dof --workers 11      하이브리드 포함 상호 대전
+    python -m dfxai.cplan.evaluate orig   --env 6dof --workers 11      같은 평가를 원래 원추(3°→10°)로 한 번 더
     python -m dfxai.cplan.evaluate report --env 6dof                   paper/results_cplan_6dof.md
 
 평가 대상 (모은 학습 결과에서 자동으로 만든다, plan.json 의 기준선 이름 사용)
@@ -17,6 +18,8 @@ C안 평가 파이프라인 (E8): 상대별 평가 → 상호 대전 → D* → 
 상호 대전: 유형(초기화·α 3종·감독·잔차·게이팅·최적화) 쌍마다 시드 N 대 시드 N+k (k = 1..--shifts) 를 붙이고
   기준선은 전원과 붙는다. 같은 신경망끼리(같은 시드) 붙지 않으며, 모두 학습 중에 서로 만난 적이 없다.
   레이팅은 Bradley–Terry (무승부 = 반승), 기준선 = 0 인 Elo 척도.
+환경 규칙은 학습과 같다(plan.json). 6자유도는 넓힌 기총 원추로 평가하고, 결론이 원추 값 때문이 아닌지 보려고 같은 정책을
+원래 원추로 다시 평가한다(all 에 포함, 결과 폴더 꼬리표 _orig, 문서 4절).
 """
 from __future__ import annotations
 import argparse, glob, json, math, os, re, sys
@@ -26,6 +29,7 @@ from multiprocessing import Pool
 
 from .job import ROOT, load_plan, outdir as train_dir
 from ..agents.registry import make_bt, label, canon
+from ..rl.es_runtime import plan_env_opts
 
 ALPHAS = (0.25, 0.5, 0.75)
 TYPES = ("INIT", "LIN-a0.25", "LIN-a0.50", "LIN-a0.75", "SHD", "RES", "GATE", "BTO")
@@ -35,6 +39,14 @@ TYPE_KO = {"BASE": "기준선 BT", "INIT": "초기화형", "LIN-a0.25": "선형 
 
 def eval_dir(env: str) -> str:
     return f"results/cplan/eval_{env}"
+
+
+def rules(plan: dict, env: str, orig: bool = False) -> dict:
+    """평가의 환경 규칙. orig 이면 기총 원추만 원래 값(3°→10°)으로 되돌린다."""
+    o = plan_env_opts(plan, env)
+    if orig:
+        o.pop("cone_deg", None)
+    return o
 
 
 def ptype(name: str) -> str:
@@ -75,15 +87,14 @@ def conditions(plan: dict, env: str, gen: int) -> list[dict]:
 
 
 # ---------------------------------------------------------------- 상대별 평가
-def run_opp(plan, env, gen, workers, n_seeds, record):
+def run_opp(plan, env, gen, workers, n_seeds, record, orig=False):
     from ..experiments.run_eval import run
     from ..analysis.report import compute_xai
-    out = os.path.join(eval_dir(env), f"opp_b{gen}")
+    out = os.path.join(eval_dir(env), f"opp_b{gen}" + ("_orig" if orig else ""))
     conds = conditions(plan, env, gen)
     opps = available_bts(plan["train_opponents"] + plan["heldout_opponents"])
     print(f"상대별 평가: 정책 {len(conds)}개 × 상대 {[label(o) for o in opps]}", flush=True)
-    run(conds, tuple(opps), n_seeds, workers, out, record_episodes=record,
-        env_opts={"sixdof": True} if env == "6dof" else {})
+    run(conds, tuple(opps), n_seeds, workers, out, record_episodes=record, env_opts=rules(plan, env, orig))
     xai = compute_xai(out)
     xai.to_csv(os.path.join(out, "xai.csv"), index=False)
     return out
@@ -151,12 +162,12 @@ def bradley_terry(df: pd.DataFrame, iters: int = 2000) -> pd.Series:
     return pd.Series(400.0 * np.log10(p), index=names)
 
 
-def run_league(plan, env, gen, workers, n_seeds, shifts):
-    out = os.path.join(eval_dir(env), f"league_b{gen}")
+def run_league(plan, env, gen, workers, n_seeds, shifts, orig=False):
+    out = os.path.join(eval_dir(env), f"league_b{gen}" + ("_orig" if orig else ""))
     os.makedirs(out, exist_ok=True)
     conds = conditions(plan, env, gen)
     pairs = league_pairs(conds, shifts)
-    opts = {"sixdof": True} if env == "6dof" else {}
+    opts = rules(plan, env, orig)
     jobs = [(a, b, 30_000 + s, opts) for a, b in pairs for s in range(n_seeds)]
     print(f"상호 대전: 짝 {len(pairs)}개 × 시드 {n_seeds} × 진영 2 = {2 * len(jobs)}교전", flush=True)
     with Pool(workers) as p:
@@ -177,16 +188,18 @@ def run_league(plan, env, gen, workers, n_seeds, shifts):
 
 
 # ---------------------------------------------------------------- 결과 문서
-def per_policy(plan, env, gen) -> pd.DataFrame:
-    d = os.path.join(eval_dir(env), f"opp_b{gen}")
+def per_policy(plan, env, gen, sfx: str = "") -> pd.DataFrame:
+    d = os.path.join(eval_dir(env), f"opp_b{gen}{sfx}")
     e = pd.read_csv(os.path.join(d, "episodes.csv"))
     train = {label(o) for o in plan["train_opponents"]}
     e["group"] = np.where(e.opponent.isin(train), "train", "heldout")
     e["kill_win"] = (e.win == 1) & (e.outcome == "gun_kill")
     e["time_win"] = (e.win == 1) & (e.outcome == "timeout")
+    e["hp_diff"] = e.damage_dealt - e.damage_taken         # run_eval 이 진영을 맞춰 둔 값이라 정책 기준이다
     agg = e.groupby("cond").agg(score_all=("score", "mean"), kill_win=("kill_win", "mean"),
                                 time_win=("time_win", "mean"), win=("win", "mean"), duration=("duration", "mean"),
-                                damage=("damage_dealt", "mean"), viol_deck=("viol_deck", "mean"),
+                                damage=("damage_dealt", "mean"), hp_diff=("hp_diff", "mean"),
+                                wez_time=("wez_time", "mean"), viol_deck=("viol_deck", "mean"),
                                 viol_over_g=("viol_over_g", "mean"))
     by = e.groupby(["cond", "group"]).score.mean().unstack()
     agg["score_train"] = by.get("train")
@@ -199,7 +212,7 @@ def per_policy(plan, env, gen) -> pd.DataFrame:
     agg = agg.reset_index()
     x = pd.read_csv(os.path.join(d, "xai.csv"))[["cond", "d_star", "d_star_090", "fidelity_at_4"]]
     agg = agg.merge(x, on="cond", how="left")
-    lr = os.path.join(eval_dir(env), f"league_b{gen}", "league_ratings.csv")
+    lr = os.path.join(eval_dir(env), f"league_b{gen}{sfx}", "league_ratings.csv")
     if os.path.exists(lr):
         agg = agg.merge(pd.read_csv(lr), on="cond", how="left")
     agg["type"] = agg.cond.map(ptype)
@@ -209,12 +222,36 @@ def per_policy(plan, env, gen) -> pd.DataFrame:
     return agg
 
 
+def cone_check(plan, env, gen, a: pd.DataFrame) -> list[str]:
+    """원래 원추 재평가: 유형별 값을 두 원추에서 나란히 놓고 유형 순위가 유지되는지 본다. 결과가 없으면 빈 목록."""
+    from ..analysis.paper import md_table
+    if not os.path.exists(os.path.join(eval_dir(env), f"opp_b{gen}_orig", "episodes.csv")):
+        return []
+    b = per_policy(plan, env, gen, "_orig")
+    b.to_csv(os.path.join(eval_dir(env), f"per_policy_b{gen}_orig.csv"), index=False)
+    cols = [c for c in ("score_train", "score_heldout", "gap", "rating", "hp_diff", "d_star") if c in a and c in b]
+    A, B = a.groupby("type")[cols].mean(), b.groupby("type")[cols].mean()
+    order = ["BASE"] + [t for t in TYPES if t in A.index and t in B.index]
+    rows = []
+    for t in order:
+        r = {"유형": TYPE_KO[t]}
+        for c in cols:
+            r[c] = f"{A.loc[t, c]:.3f}"
+            r[f"{c} (원래)"] = f"{B.loc[t, c]:.3f}"
+        rows.append(r)
+    rho = [f"{c} {A.loc[order, c].corr(B.loc[order, c], method='spearman'):.2f}" for c in cols]
+    return ["## 4. 원래 원추(3°→10°) 재평가", "",
+            "같은 정책을 학습 때 쓰지 않은 원래 원추로 다시 평가했다. 유형 순위가 비슷하면 결론이 원추 값 때문이 아니다.", "",
+            md_table(pd.DataFrame(rows)), "", "유형 순위의 Spearman ρ(두 원추 사이): " + ", ".join(rho) + ".", "",
+            f"정책별: `{eval_dir(env)}/per_policy_b{gen}_orig.csv`", ""]
+
+
 def report(plan, env, gen, out_md: str) -> str:
     from ..analysis.paper import md_table
     a = per_policy(plan, env, gen)
     a.to_csv(os.path.join(eval_dir(env), f"per_policy_b{gen}.csv"), index=False)
     cols = ["score_train", "score_heldout", "gap", "rating", "kill_win", "timeout_dependence", "dmg_per_min",
-            "d_star", "d_star_090", "d_score_train", "d_score_heldout", "d_d_star"]
+            "hp_diff", "wez_time", "d_star", "d_star_090", "d_score_train", "d_score_heldout", "d_d_star"]
     cols = [c for c in cols if c in a]
     fam = a.groupby("type")[cols].agg(["mean", "std"])
     fam.columns = [f"{c}_{s}" for c, s in fam.columns]
@@ -233,14 +270,16 @@ def report(plan, env, gen, out_md: str) -> str:
     train = ", ".join(label(o) for o in plan["train_opponents"])
     held = ", ".join(label(o) for o in available_bts(plan["heldout_opponents"]))
     lines = [f"# C안 평가 결과 ({env.upper()}, {gen}세대, 자동 생성)", "",
-             f"기준선 BT: {label(plan['baseline'])}. 학습 상대: {train}. 보류 상대: {held}.",
+             f"기준선 BT: {label(plan['baseline'])}. 학습 상대: {train}. 보류 상대: {held}. 환경 규칙: {rules(plan, env)}.",
              "실행: `python -m dfxai.cplan.evaluate all --env " + env + "`. 사전 판정 기준: `paper/C안_사전판정기준.md`.", "",
              "열: score_train·score_heldout = 학습·보류 상대 평균 점수(승 1, 무 0.5), gap = 일반화 격차(학습 − 보류),",
              "rating = 상호 대전 Bradley–Terry 레이팅(기준선 = 0, Elo 척도), kill_win = 격추승 비율,",
-             "timeout_dependence = 승리 중 시간종료 승의 비율, dmg_per_min = 분당 타격량, d_* = 기준선 대비 차이.", "",
+             "timeout_dependence = 승리 중 시간종료 승의 비율, dmg_per_min = 분당 타격량,",
+             "hp_diff = HP 차이(준 피해 − 받은 피해), wez_time = 정책의 WEZ 체류 시간 [s], d_* = 기준선 대비 차이.", "",
              "## 1. 유형별 (평균 ± 시드 간 표준편차)", "", md_table(t1), "",
              "## 2. 상대별 점수", "", md_table(t2), "",
              "## 3. 정책별", "", f"`{eval_dir(env)}/per_policy_b{gen}.csv`", ""]
+    lines += cone_check(plan, env, gen, a)
     text = "\n".join(lines)
     with open(out_md, "w", encoding="utf-8") as f:
         f.write(text)
@@ -251,7 +290,7 @@ def main():
     sys.stdout.reconfigure(encoding="utf-8")
     os.chdir(ROOT)
     ap = argparse.ArgumentParser(description="C안 평가 파이프라인 (E8)")
-    ap.add_argument("cmd", choices=("conditions", "opp", "league", "report", "all"))
+    ap.add_argument("cmd", choices=("conditions", "opp", "league", "orig", "report", "all"))
     ap.add_argument("--env", choices=("6dof", "3dof"), default="6dof")
     ap.add_argument("--gen", type=int, default=None, help="평가할 체크포인트 세대 (기본: plan.generations)")
     ap.add_argument("--workers", type=int, default=4)
@@ -271,6 +310,9 @@ def main():
         run_opp(plan, a.env, gen, a.workers, a.n_seeds, a.record)
     if a.cmd in ("league", "all"):
         run_league(plan, a.env, gen, a.workers, a.league_seeds, a.shifts)
+    if a.cmd == "orig" or (a.cmd == "all" and "cone_deg" in rules(plan, a.env)):
+        run_opp(plan, a.env, gen, a.workers, a.n_seeds, a.record, orig=True)
+        run_league(plan, a.env, gen, a.workers, a.league_seeds, a.shifts, orig=True)
     if a.cmd in ("report", "all"):
         print(report(plan, a.env, gen, a.out or os.path.join("paper", f"results_cplan_{a.env}.md")))
 

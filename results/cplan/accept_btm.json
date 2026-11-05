@@ -19,7 +19,7 @@
       "형식",
       "last_node 기록",
       true,
-      "발동 노드 ['high_g_pull', 'lateral_offset', 'lead_pursuit_gun', 'rate_turn_lead_or_two_circle', 'recover_lift_vector_up', 'turn_circle_entry']"
+      "발동 노드 ['break_turn_into_threat', 'high_g_pull', 'lateral_offset', 'lead_pursuit_gun', 'rate_turn_lead_or_two_circle', 'recover_lift_vector_up', 'turn_circle_entry']"
     ],
     [
       "형식",
@@ -65,7 +65,7 @@
     ],
     [
       "3DOF",
-      "① 400교전 오류 없음",
+      "① 600교전 오류 없음",
       true,
       "오류 0회 "
     ],
@@ -73,7 +73,7 @@
       "3DOF",
       "② 공중충돌 ≤ 10%",
       true,
-      "0.010"
+      "0.002"
     ],
     [
       "3DOF",
@@ -83,19 +83,19 @@
     ],
     [
       "3DOF",
-      "③ BT-v2 상대 점수 ≥ 0.45",
+      "③ BT-E 상대 점수 0.35–0.65",
       true,
-      "0.472"
+      "0.585"
     ],
     [
       "3DOF",
       "④ 행동 복제 R² ≥ 0.9",
-      true,
-      "0.907 (채널별 [0.957, 0.972, 0.686])"
+      false,
+      "0.877 (채널별 [0.959, 0.876, 0.788])"
     ],
     [
       "6DOF",
-      "① 400교전 오류 없음",
+      "① 600교전 오류 없음",
       true,
       "오류 0회 "
     ],
@@ -103,7 +103,7 @@
       "6DOF",
       "② 공중충돌 ≤ 10%",
       true,
-      "0.048"
+      "0.035"
     ],
     [
       "6DOF",
@@ -113,40 +113,50 @@
     ],
     [
       "6DOF",
-      "③ BT-v2 상대 점수 ≥ 0.45",
+      "③ BT-E 상대 점수 0.35–0.65",
       true,
-      "0.465"
+      "0.635"
     ],
     [
       "6DOF",
       "④ 행동 복제 R² ≥ 0.9",
       false,
-      "0.784 (채널별 [0.955, 0.861, 0.653])"
+      "0.831 (채널별 [0.952, 0.769, 0.78])"
     ]
   ],
   "battle": {
     "3DOF": {
-      "n": 400,
+      "n": 600,
       "errors": 0,
-      "collision": 0.01,
+      "collision": 0.0016666666666666668,
       "crash": 0.0,
-      "score_v2": 0.4725,
-      "score_v3": 0.6725,
-      "kill_win": 0.04,
-      "timeout": 0.8275,
+      "score": {
+        "BT-E": 0.585,
+        "BT-M+": 0.5,
+        "BT-R": 0.45
+      },
+      "contact": 0.585,
+      "wez": 0.41291666666666643,
+      "kill_win": 0.03833333333333333,
+      "timeout": 0.9016666666666666,
       "viol_deck": 0.0,
       "viol_over_g": 0.0,
       "first_error": ""
     },
     "6DOF": {
-      "n": 400,
+      "n": 600,
       "errors": 0,
-      "collision": 0.0475,
+      "collision": 0.035,
       "crash": 0.0,
-      "score_v2": 0.465,
-      "score_v3": 0.5275,
-      "kill_win": 0.0,
-      "timeout": 0.9525,
+      "score": {
+        "BT-E": 0.635,
+        "BT-M+": 0.3725,
+        "BT-R": 0.4975
+      },
+      "contact": 0.5533333333333333,
+      "wez": 0.783166666666666,
+      "kill_win": 0.058333333333333334,
+      "timeout": 0.8383333333333334,
       "viol_deck": 0.0,
       "viol_over_g": 0.0,
       "first_error": ""
@@ -155,59 +165,74 @@
   "bc": {
     "3DOF": {
       "teacher": "BT-M",
+      "opponents": [
+        "BT-M",
+        "BT-E"
+      ],
+      "env_opts": {},
       "sixdof": false,
       "episodes": 300,
-      "samples": 161973,
+      "samples": 176841,
       "r2": {
-        "weighted": 0.907464644591971,
+        "weighted": 0.8774379133205996,
         "per_channel": [
-          0.9566317217376593,
-          0.9722032425716917,
-          0.6864551040187215
+          0.9585970794947094,
+          0.8759076314416676,
+          0.7877373883639469
         ],
-        "n_train": 145776,
-        "n_val": 16197
+        "n_train": 159157,
+        "n_val": 17684
       },
       "eval": {
-        "BT-v2": {
+        "BT-E": {
           "score": 0.5375,
-          "wez": 0.5349999999999999,
+          "wez": 0.6262499999999994,
           "outcomes": {
-            "timeout": 38,
-            "gun_kill": 2
+            "timeout": 34,
+            "gun_kill": 6
           }
         }
       },
-      "seconds": 58
+      "seconds": 587
     },
     "6DOF": {
       "teacher": "BT-M",
+      "opponents": [
+        "BT-M",
+        "BT-E"
+      ],
+      "env_opts": {
+        "cone_deg": [
+          6.0,
+          12.0
+        ],
+        "sixdof": true
+      },
       "sixdof": true,
       "episodes": 300,
-      "samples": 173047,
+      "samples": 170025,
       "r2": {
-        "weighted": 0.7836962896086426,
+        "weighted": 0.8314756069752297,
         "per_channel": [
-          0.9550172683546401,
-          0.8612185672973742,
-          0.6534202639882616
+          0.9520183934938657,
+          0.7687750167286613,
+          0.7804018640794801
         ],
-        "n_train": 155743,
-        "n_val": 17304
+        "n_train": 153023,
+        "n_val": 17002
       },
       "eval": {
-        "BT-v2": {
+        "BT-E": {
           "score": 0.4875,
-          "wez": 0.06875000000000003,
+          "wez": 0.18875,
           "outcomes": {
-            "timeout": 37,
-            "crash": 1,
-            "collision": 1,
-            "gun_kill": 1
+            "timeout": 36,
+            "collision": 3,
+            "crash": 1
           }
         }
       },
-      "seconds": 131
+      "seconds": 631
     }
   }
 }

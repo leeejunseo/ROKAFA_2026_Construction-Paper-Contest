@@ -13,14 +13,23 @@ import json, os, platform, subprocess, sys, time
 import numpy as np
 
 
-def env_opts(sixdof: bool = False, roll_rate_max: float | None = None) -> dict:
-    """학습 환경 옵션. 3자유도 기본값은 빈 dict (run_eval.make_env 와 같은 형식)."""
+def env_opts(sixdof: bool = False, roll_rate_max: float | None = None, cone=None) -> dict:
+    """학습 환경 옵션. 3자유도 기본값은 빈 dict (run_eval.make_env 와 같은 형식). cone: [시작, 끝] 원추 반각 [deg]."""
     o = {}
     if roll_rate_max:
         o["roll_rate_max_deg"] = float(roll_rate_max)
+    if cone:
+        o["cone_deg"] = [float(d) for d in cone]
     if sixdof:
         o["sixdof"] = True
     return o
+
+
+def plan_env_opts(plan: dict, env: str) -> dict:
+    """plan.json 의 환경 규칙. 수용 검사·시범 판정·평가가 모두 이것을 써서 학습과 같은 규칙으로 돈다."""
+    if env == "6dof":
+        return env_opts(True, cone=plan.get("gun_cone_6dof"))
+    return env_opts(False, plan.get("roll_rate_max_3dof"))
 
 
 def make_env(opts: dict | None):

@@ -1,0 +1,104 @@
+초기화: results/cplan/bc/bc_btm_6dof.npz (hidden=(32, 32), 1827 params)
+[gen    1] fit mean= -10.619 max=  -1.953 theta=  -2.785 accept=0/1 lr=0.0070 alpha>=0.25 (54s)
+[gen    2] fit mean= -11.288 max=  -3.427 theta=  -4.892 accept=0/2 lr=0.0049 alpha>=0.25 (107s)
+[gen    4] fit mean=  -9.671 max=  -2.993 theta= -11.278 accept=1/4 lr=0.0039 alpha>=0.25 (210s)
+[gen    6] fit mean= -10.507 max=  -3.598 theta=  -5.349 accept=1/6 lr=0.0025 alpha>=0.25 (311s)
+[gen    8] fit mean=  -8.492 max=  -3.205 theta=  -0.587 accept=2/8 lr=0.0029 alpha>=0.25 (418s)
+[gen   10] fit mean=  -8.406 max=  -3.675 theta=  -6.187 accept=4/10 lr=0.0038 alpha>=0.25 (526s)
+[gen   12] fit mean=  -9.441 max=  -4.589 theta=  -8.297 accept=5/12 lr=0.0031 alpha>=0.25 (635s)
+[gen   14] fit mean= -10.545 max=  -5.199 theta=  -4.515 accept=7/14 lr=0.0040 alpha>=0.25 (746s)
+[gen   16] fit mean= -10.197 max=  -3.844 theta=  -3.705 accept=7/16 lr=0.0025 alpha>=0.25 (858s)
+[gen   18] fit mean=  -8.093 max=  -1.113 theta=  -2.976 accept=8/18 lr=0.0025 alpha>=0.25 (967s)
+[gen   20] fit mean=  -9.292 max=  -0.541 theta=  -3.587 accept=10/20 lr=0.0033 alpha>=0.25 (1080s)
+[gen   22] fit mean= -10.969 max=  -1.467 theta=  -3.332 accept=11/22 lr=0.0027 alpha>=0.25 (1190s)
+[gen   24] fit mean=  -7.124 max=   3.111 theta=  -1.365 accept=13/24 lr=0.0035 alpha>=0.25 (1301s)
+[gen   26] fit mean=  -6.225 max=   0.432 theta=  -5.642 accept=15/26 lr=0.0047 alpha>=0.25 (1415s)
+[gen   28] fit mean=  -8.353 max=  -1.789 theta=   4.502 accept=17/28 lr=0.0062 alpha>=0.25 (1528s)
+[gen   30] fit mean=  -5.379 max=   4.680 theta=   8.415 accept=18/30 lr=0.0050 alpha>=0.25 (1646s)
+[gen   32] fit mean=  -8.129 max=   0.612 theta=  -8.399 accept=19/32 lr=0.0040 alpha>=0.25 (1762s)
+[gen   34] fit mean=  -9.647 max=  -0.380 theta=  -0.037 accept=19/34 lr=0.0025 alpha>=0.25 (1880s)
+[gen   36] fit mean=  -8.194 max=   2.915 theta=   0.005 accept=19/36 lr=0.0025 alpha>=0.25 (2000s)
+[gen   38] fit mean=  -9.238 max=  -3.533 theta=  -3.780 accept=20/38 lr=0.0025 alpha>=0.25 (2116s)
+[gen   40] fit mean=  -8.109 max=  -2.201 theta=  -1.731 accept=20/40 lr=0.0025 alpha>=0.25 (2238s)
+[gen   42] fit mean=  -9.773 max=  -3.257 theta=  -6.681 accept=21/42 lr=0.0025 alpha>=0.25 (2360s)
+[gen   44] fit mean=  -7.681 max=   0.210 theta=   1.581 accept=23/44 lr=0.0033 alpha>=0.25 (2478s)
+[gen   46] fit mean=  -8.963 max=   2.884 theta=  -1.945 accept=24/46 lr=0.0029 alpha>=0.25 (2602s)
+[gen   48] fit mean=  -6.989 max=   6.758 theta=   3.743 accept=26/48 lr=0.0038 alpha>=0.25 (2724s)
+[gen   50] fit mean=  -4.588 max=   3.554 theta=   2.252 accept=27/50 lr=0.0031 alpha>=0.25 (2848s)
+
+
+     JSBSim Flight Dynamics Model v1.3.1 [GitHub build 1837/commit 3b25f25e49b42d0489c04ac805674fc1450ca579] May 17 2026 14:28:34
+            [JSBSim-ML v2.0]
+
+JSBSim startup beginning ...
+
+
+
+     JSBSim Flight Dynamics Model v1.3.1 [GitHub build 1837/commit 3b25f25e49b42d0489c04ac805674fc1450ca579] May 17 2026 14:28:34
+            [JSBSim-ML v2.0]
+
+JSBSim startup beginning ...
+
+
+
+     JSBSim Flight Dynamics Model v1.3.1 [GitHub build 1837/commit 3b25f25e49b42d0489c04ac805674fc1450ca579] May 17 2026 14:28:34
+            [JSBSim-ML v2.0]
+
+JSBSim startup beginning ...
+
+
+
+     JSBSim Flight Dynamics Model v1.3.1 [GitHub build 1837/commit 3b25f25e49b42d0489c04ac805674fc1450ca579] May 17 2026 14:28:34
+            [JSBSim-ML v2.0]
+
+JSBSim startup beginning ...
+
+
+
+     JSBSim Flight Dynamics Model v1.3.1 [GitHub build 1837/commit 3b25f25e49b42d0489c04ac805674fc1450ca579] May 17 2026 14:28:34
+            [JSBSim-ML v2.0]
+
+JSBSim startup beginning ...
+
+
+
+     JSBSim Flight Dynamics Model v1.3.1 [GitHub build 1837/commit 3b25f25e49b42d0489c04ac805674fc1450ca579] May 17 2026 14:28:34
+            [JSBSim-ML v2.0]
+
+JSBSim startup beginning ...
+
+
+
+     JSBSim Flight Dynamics Model v1.3.1 [GitHub build 1837/commit 3b25f25e49b42d0489c04ac805674fc1450ca579] May 17 2026 14:28:34
+            [JSBSim-ML v2.0]
+
+JSBSim startup beginning ...
+
+
+
+     JSBSim Flight Dynamics Model v1.3.1 [GitHub build 1837/commit 3b25f25e49b42d0489c04ac805674fc1450ca579] May 17 2026 14:28:34
+            [JSBSim-ML v2.0]
+
+JSBSim startup beginning ...
+
+
+
+     JSBSim Flight Dynamics Model v1.3.1 [GitHub build 1837/commit 3b25f25e49b42d0489c04ac805674fc1450ca579] May 17 2026 14:28:34
+            [JSBSim-ML v2.0]
+
+JSBSim startup beginning ...
+
+
+
+     JSBSim Flight Dynamics Model v1.3.1 [GitHub build 1837/commit 3b25f25e49b42d0489c04ac805674fc1450ca579] May 17 2026 14:28:34
+            [JSBSim-ML v2.0]
+
+JSBSim startup beginning ...
+
+
+
+     JSBSim Flight Dynamics Model v1.3.1 [GitHub build 1837/commit 3b25f25e49b42d0489c04ac805674fc1450ca579] May 17 2026 14:28:34
+            [JSBSim-ML v2.0]
+
+JSBSim startup beginning ...
+

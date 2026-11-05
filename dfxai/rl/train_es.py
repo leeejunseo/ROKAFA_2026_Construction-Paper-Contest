@@ -222,6 +222,8 @@ def main():
     ap.add_argument("--opponents", nargs="*", default=["1", "2"],
                     help="학습 상대 행동트리(정수 또는 이름). 교전마다 번갈아 배정")
     ap.add_argument("--sixdof", action="store_true", help="6자유도(JSBSim F-16)에서 학습")
+    ap.add_argument("--cone", nargs=2, type=float, default=None, metavar=("START", "END"),
+                    help="기총 명중 원추 반각 [deg] (기본: 3 → 10)")
     ap.add_argument("--roll-rate-max", type=float, default=None,
                     help="3자유도 롤 속도 상한 [deg/s] (C안 보험 2 의 D5)")
     ap.add_argument("--resume", action="store_true", help="state_<tag> 가 있으면 거기서 이어서 학습")
@@ -249,7 +251,7 @@ def main():
           outdir=args.outdir, checkpoint_every=args.checkpoint_every, tag=tag,
           alpha_curriculum=args.alpha_curriculum, init=args.init,
           accept_test=not args.no_accept_test, fitness=args.fitness,
-          env_opts=env_opts(args.sixdof, args.roll_rate_max), resume=args.resume,
+          env_opts=env_opts(args.sixdof, args.roll_rate_max, args.cone), resume=args.resume,
           stop_after=args.stop_after, meta_args=dict(script="train_es", **vars(args)),
           accept_fresh=args.accept_fresh, accept_episodes=args.accept_episodes)
 

@@ -70,6 +70,7 @@ class BTMParams:
     pass_ata: float = _D(90.0)            #            상대가 내 3/9 선 앞(ATA<90°)일 때만
     pass_bank: float = _D(75.0)           # 회피 뱅크
     pass_g: float = 6.0                   # 회피 하중 [G]
+    pass_roll_tol: float = _D(30.0)       # 실제 뱅크가 회피 뱅크에서 이 각 안에 들어오면 당김, 그 전에는 1 G 로 굴리기만
     floor_lookahead: float = 5.0          # 하드덱 예측 시간 [s]
     floor_margin: float = 300.0           # 예측 고도가 하드덱 + 이 값 아래면 회복 [m] (약 1,000 ft)
     floor_zone: float = 4000.0 * FT       # 하드덱 위 이 고도 안에서는 기수 하향 선회 금지 [m] (4.6.32 "less than 4,000 feet")
@@ -209,7 +210,11 @@ def _build(P: BTMParams, g_cap: float) -> tuple[Node, Node]:
 
     def lateral_offset(bb):
         side = -1.0 if bb.get("cpa_side", 0.0) > 0.0 else 1.0   # 상대가 지나갈 쪽의 반대 (같으면 우측)
-        _set(bb, side * P.pass_bank, P.pass_g, bb["thr_plateau"])
+        mu_cmd = side * P.pass_bank
+        # 하중을 푼 채로 먼저 굴려 양력벡터를 회피 방향에 맞춘 뒤 당긴다 (4.4.5.2 "unloaded roll to set Lv").
+        # 6자유도에서 배면에 가까운 자세로 바로 당기면 상대 고도 쪽으로 기수가 떨어져 충돌했다.
+        g = P.pass_g if abs(_wrap(mu_cmd - bb["mu_own"])) < P.pass_roll_tol else 1.0
+        _set(bb, mu_cmd, g, bb["thr_plateau"])
 
     def floor_predicted(bb):
         h_pred = bb["h_own"] + bb["v_own"] * math.sin(bb["gamma_own"]) * P.floor_lookahead

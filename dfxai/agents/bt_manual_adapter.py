@@ -4,8 +4,8 @@ BT-M / BT-M+ (손형래, agents/bt_manual.py) 를 학습·평가 도구의 형�
 bt_manual.py 는 손대지 않는다. 여기서 덧붙이는 것:
   * SAFETY_NODES 를 클래스 속성으로 (감독형이 가로챌 노드: 통과 이격, 하드덱 회복)
   * rule_count() = 행동(Action) 노드 수
-  * PARAM_SPEC 과 __init__(theta) — 파라미터 최적화형용. **상수 선택과 범위는 이준서의 제안이며
-    손형래(H3)가 확정한다.** 안전 상수(통과 이격·하드덱·자율 G 제한)는 최적화하지 않는다:
+  * PARAM_SPEC 과 __init__(theta) — 파라미터 최적화형용. **상수 선택은 이준서의 제안이고
+    범위는 손형래(H3, 11/5)가 확인했다.** 안전 상수(통과 이격·하드덱·자율 G 제한)는 최적화하지 않는다:
     최적화된 BT 도 기준선과 같은 안전 규칙을 지켜야 "규칙은 그대로, 상수만 조정"이 되기 때문이다.
 
 registry 이름: btm = BT-M (기준선), btmplus = BT-M+ (상세판)
@@ -21,7 +21,7 @@ from .bt_manual import ManualBTPolicy, BTMParams, SAFETY_NODES as _SAFETY
 
 _D = math.radians
 
-# (BTMParams 필드, 하한, 상한, 기본값) — 각도는 라디안, 거리 m, 속도 m/s. θ = -1 → 하한, +1 → 상한 (제안)
+# (BTMParams 필드, 하한, 상한, 기본값) — 각도는 라디안, 거리 m, 속도 m/s. θ = -1 → 하한, +1 → 상한
 _DEF = BTMParams()
 PARAM_SPEC = [
     ("def_threat_ata", _D(25.0), _D(70.0), _DEF.def_threat_ata),   # 방어 전환: 상대 기수가 나를 겨누는 각
@@ -30,8 +30,8 @@ PARAM_SPEC = [
     ("entry_g",        2.5,      7.0,      _DEF.entry_g),          # 선회원 밖 접근 하중 [G]
     ("gun_range",      800.0,    2000.0,   _DEF.gun_range),        # 리드추격 전환 거리
     ("gun_ata",        _D(20.0), _D(60.0), _DEF.gun_ata),          # 리드추격 전환 총각
-    ("lead_gain",      0.8,      1.8,      _DEF.lead_gain),        # 리드 이득
-    ("v_rate_hi",      190.0,    260.0,    _DEF.v_rate_hi),        # 코너 플래토 상한 (넘으면 감속)
+    ("lead_gain",      1.0,      1.8,      _DEF.lead_gain),        # 리드 이득 (1 미만은 래그 추격이라 교범 근거가 깨진다)
+    ("v_rate_hi",      170.0,    247.0,    _DEF.v_rate_hi),        # 코너 플래토 상한 (넘으면 감속). 교범 코너~진입 속도 330~480 KCAS
 ]
 
 

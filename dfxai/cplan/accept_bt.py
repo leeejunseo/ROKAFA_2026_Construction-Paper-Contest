@@ -1,18 +1,20 @@
 """
 기준선 BT 수용 검사 (C안 G1 = 손형래 H4, 이준서와 함께).
 
-    python -m dfxai.cplan.accept_bt --bt btm --workers 11            (약 15분)
+    python -m dfxai.cplan.accept_bt --bt btm --workers 11            (이 PC 약 30분)
     python -m dfxai.cplan.accept_bt --bt tmpl --quick --workers 11   (형식만 빠르게)
 
 검사 항목
   형식 (H1·H3)  act() 가 [-1, 1]^3 유한값을 내고 last_node 를 남기는가, 기억이 없는가(같은 관측 = 같은 지령),
                 SAFETY_NODES 가 실제 발동하는 노드인가, PARAM_SPEC 이 5–10개이고 기본값 θ 가 기본 정책과 같은가,
                 rule_count() 가 있는가
-  ① 400교전 오류 없음      3DOF·6DOF 각각 상대 BT-v2·BT-v3 × 시드 100 × 진영 2
+  교전 상대는 plan.json 의 다른 학습 상대와 보류 상대, 환경 규칙(6자유도 기총 원추 등)도 plan.json 그대로다.
+  ① 오류 없음              3DOF·6DOF 각각 상대마다 시드 100 × 진영 2
   ② 공중충돌 ≤ 10 %, 지면충돌(자기 추락) ≤ 5 %   (제안 기준, 3DOF·6DOF 각각)
-  ③ BT-v2 상대 점수 ≥ 0.45 (3DOF·6DOF 각각)
-  ④ 행동 복제 가능: 복제본의 지령 재현 R² ≥ 0.9 (분산 가중, 검증 자료, 3DOF·6DOF 각각, 기본 200회 반복)
-부산물: 행동 복제 초기값 results/cplan/bc/bc_<bt>_<3dof|6dof>.npz (+ .json, 수집 자료 _data.npz) — 초기화형 학습의 출발점(E4)
+  ③ 학습 상대끼리 점수 0.35–0.65 (어느 쪽도 압도하지 않음, 3DOF·6DOF 각각. 손형래 제안 2026-11-05)
+  ④ 행동 복제 가능: 복제본의 지령 재현 R² ≥ 0.9 (분산 가중, 검증 자료, 3DOF·6DOF 각각, 기본 1000회 반복)
+부산물: 행동 복제 초기값 results/cplan/bc/bc_<bt>_<3dof|6dof>.npz (+ .json, 수집 자료 _data.npz) — 초기화형 학습의 출발점(E4).
+        수집 교전의 상대는 학습 상대만 쓴다(보류 상대는 행동 복제에도 쓰지 않는다).
 
 출력: results/cplan/accept_<bt>.md, .json
 """
@@ -26,8 +28,16 @@ from ..agents.registry import make_bt, label, canon, param_spec, default_theta, 
 from ..agents.base import Policy
 from ..env import DogfightEnv, run_episode
 from ..experiments.run_eval import _one_job
+from ..rl.es_runtime import plan_env_opts
 
-TH = dict(collision=0.10, crash=0.05, score_v2=0.45, bc_r2=0.90)
+TH = dict(collision=0.10, crash=0.05, partner_lo=0.35, partner_hi=0.65, bc_r2=0.90)
+
+
+def load_plan() -> dict:
+    """job.load_plan 과 같은 파일. job 을 불러오면 스레드 수가 1로 고정되어 행동 복제(torch)가 느려지므로 따로 읽는다."""
+    path = os.environ.get("CPLAN_PLAN") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "plan.json")
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
 
 
 def _safe_job(args):
@@ -89,10 +99,9 @@ def interface_checks(name: str) -> list[tuple]:
     return out, nodes
 
 
-def battle(name: str, sixdof: bool, n_seeds: int, workers: int) -> pd.DataFrame:
+def battle(name: str, opps: list, opts: dict, n_seeds: int, workers: int) -> pd.DataFrame:
     spec = dict(name=label(name), kind="bt", bt=canon(name))
-    opts = {"sixdof": True} if sixdof else {}
-    jobs = [(spec, ov, 10_000 + i, side, False, opts) for ov in (2, 3) for i in range(n_seeds) for side in (0, 1)]
+    jobs = [(spec, ov, 10_000 + i, side, False, opts) for ov in opps for i in range(n_seeds) for side in (0, 1)]
     with Pool(workers) as p:
         rows = p.map(_safe_job, jobs, chunksize=4)
     return pd.DataFrame(rows)
@@ -101,30 +110,32 @@ def battle(name: str, sixdof: bool, n_seeds: int, workers: int) -> pd.DataFrame:
 def judge_battle(df: pd.DataFrame) -> dict:
     err = int(df["error"].notna().sum()) if "error" in df else 0
     ok = df[df["error"].isna()] if "error" in df else df
-    v2 = ok[ok.opponent == "BT-v2"]
     return dict(n=len(df), errors=err, collision=float((ok.outcome == "collision").mean()),
                 crash=float(((ok.outcome == "crash") & (ok.loss == 1)).mean()),
-                score_v2=float(v2.score.mean()), score_v3=float(ok[ok.opponent == "BT-v3"].score.mean()),
+                score={o: float(g.score.mean()) for o, g in ok.groupby("opponent")},
+                contact=float(((ok.damage_dealt + ok.damage_taken) > 0).mean()), wez=float(ok.wez_time.mean()),
                 kill_win=float(((ok.outcome == "gun_kill") & (ok.win == 1)).mean()),
                 timeout=float((ok.outcome == "timeout").mean()),
                 viol_deck=float(ok.viol_deck.mean()), viol_over_g=float(ok.viol_over_g.mean()),
                 first_error=(df["error"].dropna().iloc[0] if err else ""))
 
 
-def clone(name: str, sixdof: bool, episodes: int, epochs: int, workers: int, outdir: str) -> dict:
+def clone(name: str, opps: list, check_opp: str, opts: dict, episodes: int, epochs: int, workers: int,
+          outdir: str) -> dict:
     from ..rl.pretrain_bc import collect, fit, evaluate
-    opts = {"sixdof": True} if sixdof else {}
+    sixdof = bool(opts.get("sixdof"))
     tag = "6dof" if sixdof else "3dof"
     t0 = time.time()
-    X, Y = collect(canon(name), (1, 2, 3), n_episodes=episodes, env_opts=opts, workers=workers)
+    X, Y = collect(canon(name), tuple(opps), n_episodes=episodes, env_opts=opts, workers=workers)
     os.makedirs(outdir, exist_ok=True)
     base = os.path.join(outdir, f"bc_{canon(name)}_{tag}")
     np.savez_compressed(base + "_data.npz", obs=X, act=Y, teacher=canon(name), sixdof=sixdof)
     pol = fit(X, Y, epochs=epochs, verbose=False)
     pol.save(base + ".npz")
-    ev = evaluate(pol, 2, n_seeds=20, env_opts=opts)
-    rep = dict(teacher=label(name), sixdof=sixdof, episodes=episodes, samples=int(len(X)), r2=pol.bc_r2,
-               eval={"BT-v2": ev}, seconds=round(time.time() - t0))
+    ev = evaluate(pol, check_opp, n_seeds=20, env_opts=opts)
+    rep = dict(teacher=label(name), opponents=[label(o) for o in opps], env_opts=opts, sixdof=sixdof,
+               episodes=episodes, samples=int(len(X)), r2=pol.bc_r2, eval={label(check_opp): ev},
+               seconds=round(time.time() - t0))
     with open(base + ".json", "w", encoding="utf-8") as f:
         json.dump(rep, f, indent=2, ensure_ascii=False)
     return rep
@@ -136,23 +147,28 @@ def main():
     ap.add_argument("--bt", required=True, help="registry 이름 (btm, btmplus, school, tmpl, v2 …)")
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--quick", action="store_true", help="교전 시드 20, 복제 60교전·20회 반복 (형식 확인용)")
-    ap.add_argument("--bc-epochs", type=int, default=200,
-                    help="행동 복제 반복 횟수. 60회는 BT-M 처럼 스로틀이 계단인 BT 를 덜 배운다(3DOF R² 0.86 → 200회 0.91)")
+    ap.add_argument("--bc-epochs", type=int, default=1000,
+                    help="행동 복제 반복 횟수. BT-M 처럼 스로틀이 계단인 BT 는 오래 배워야 한다(학습 상대 수집 3DOF R²: 200회 0.81, 1000회 0.88)")
     ap.add_argument("--no-6dof", action="store_true", help="3자유도만")
     ap.add_argument("--outdir", default="results/cplan")
     a = ap.parse_args()
     n_seeds, bc_eps, bc_epochs = (20, 60, 20) if a.quick else (100, 300, a.bc_epochs)
     name = canon(a.bt)
+    plan = load_plan()
+    train = [canon(o) for o in plan["train_opponents"]]
+    partners = [o for o in train if o != name]              # ③ 의 "다른 학습 상대"
+    opps = partners + [canon(o) for o in plan["heldout_opponents"] if canon(o) != name]
     print(f"[{label(name)}] 형식 점검", flush=True)
     iface, nodes = interface_checks(name)
     envs = [False] if a.no_6dof else [False, True]
-    bat, bc = {}, {}
+    bat, bc, rules = {}, {}, {}
     for six in envs:
         tag = "6DOF" if six else "3DOF"
-        print(f"[{label(name)}] {tag} 교전 {4 * n_seeds}회", flush=True)
-        bat[tag] = judge_battle(battle(name, six, n_seeds, a.workers))
+        rules[tag] = plan_env_opts(plan, "6dof" if six else "3dof")
+        print(f"[{label(name)}] {tag} 교전 {2 * n_seeds * len(opps)}회 (규칙 {rules[tag]})", flush=True)
+        bat[tag] = judge_battle(battle(name, opps, rules[tag], n_seeds, a.workers))
         print(f"[{label(name)}] {tag} 행동 복제 ({bc_eps}교전 수집)", flush=True)
-        bc[tag] = clone(name, six, bc_eps, bc_epochs, a.workers, os.path.join(a.outdir, "bc"))
+        bc[tag] = clone(name, train, partners[0], rules[tag], bc_eps, bc_epochs, a.workers, os.path.join(a.outdir, "bc"))
 
     rows = [("형식", k, ok, d) for k, ok, d in iface]
     for tag in bat:
@@ -160,7 +176,9 @@ def main():
         rows += [(tag, f"① {b['n']}교전 오류 없음", b["errors"] == 0, f"오류 {b['errors']}회 " + b["first_error"][-200:]),
                  (tag, f"② 공중충돌 ≤ {TH['collision']:.0%}", b["collision"] <= TH["collision"], f"{b['collision']:.3f}"),
                  (tag, f"② 지면충돌(자기 추락) ≤ {TH['crash']:.0%}", b["crash"] <= TH["crash"], f"{b['crash']:.3f}"),
-                 (tag, f"③ BT-v2 상대 점수 ≥ {TH['score_v2']}", b["score_v2"] >= TH["score_v2"], f"{b['score_v2']:.3f}"),
+                 *[(tag, f"③ {label(p)} 상대 점수 {TH['partner_lo']}–{TH['partner_hi']}",
+                    TH["partner_lo"] <= b["score"][label(p)] <= TH["partner_hi"], f"{b['score'][label(p)]:.3f}")
+                   for p in partners],
                  (tag, f"④ 행동 복제 R² ≥ {TH['bc_r2']}", c["r2"]["weighted"] >= TH["bc_r2"],
                   f"{c['r2']['weighted']:.3f} (채널별 {[None if x is None else round(x, 3) for x in c['r2']['per_channel']]})")]
     passed = all(r[2] for r in rows)
@@ -168,15 +186,20 @@ def main():
              f"판정: **{'통과' if passed else '실패'}**" + (" (빠른 점검 — G1 판정에는 --quick 없이 다시 돌린다)" if a.quick else ""),
              "", "| 환경 | 항목 | 결과 | 값 |", "|---|---|---|---|"]
     lines += [f"| {e} | {k} | {'통과' if ok else '**실패**'} | {str(d).replace('|', '/')} |" for e, k, ok, d in rows]
-    lines += ["", "## 참고 지표", "", "| 환경 | BT-v3 상대 점수 | 격추승 비율 | 시간종료 비율 | 하드덱 위반율 | 과G 위반율 | 복제본 vs BT-v2 점수 |",
-              "|---|---|---|---|---|---|---|"]
+    lines += ["", "## 참고 지표", "",
+              f"| 환경 | {' | '.join(label(o) + ' 상대 점수' for o in opps)} | 접촉률 | WEZ 체류 [s] | 격추승 비율 | 시간종료 비율 | "
+              f"하드덱 위반율 | 과G 위반율 | 복제본 vs {label(partners[0])} 점수 |",
+              "|---|" + "---|" * (len(opps) + 7)]
     for tag in bat:
         b, c = bat[tag], bc[tag]
-        lines.append(f"| {tag} | {b['score_v3']:.3f} | {b['kill_win']:.3f} | {b['timeout']:.3f} | {b['viol_deck']:.4f} | "
-                     f"{b['viol_over_g']:.4f} | {c['eval']['BT-v2']['score']:.3f} |")
+        lines.append(f"| {tag} | {' | '.join(f'{b_s:.3f}' for b_s in (b['score'][label(o)] for o in opps))} | "
+                     f"{b['contact']:.3f} | {b['wez']:.2f} | {b['kill_win']:.3f} | {b['timeout']:.3f} | {b['viol_deck']:.4f} | "
+                     f"{b['viol_over_g']:.4f} | {c['eval'][label(partners[0])]['score']:.3f} |")
     lines += ["", f"3자유도 시험 교전에서 발동한 노드: {', '.join(sorted(nodes))}",
               f"감독형이 가로챌 안전 노드: {', '.join(safety_nodes(make_bt(name)))}", "",
-              "기준(C안_실행명세서 4.1절 H4): ② ④ 의 수치는 제안 기준이다. 교전은 평가와 같은 방식(시드 10000부터, 진영 교대)."]
+              f"환경 규칙: {rules}. 행동 복제 수집 상대: {', '.join(label(o) for o in train)}.",
+              "기준(C안_실행명세서 4.1절 H4): ② ④ 의 수치는 제안 기준이다. ③ 은 2026-11-05 손형래 제안으로 BT-v2 상대 ≥ 0.45 에서 바꿨다. "
+              "교전은 평가와 같은 방식(시드 10000부터, 진영 교대). 접촉률 = 어느 쪽이든 피해가 난 교전의 비율."]
     os.makedirs(a.outdir, exist_ok=True)
     md = os.path.join(a.outdir, f"accept_{name}.md")
     with open(md, "w", encoding="utf-8") as f:

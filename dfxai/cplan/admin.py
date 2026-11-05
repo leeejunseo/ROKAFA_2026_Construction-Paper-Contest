@@ -106,6 +106,9 @@ def collect(src: str, env: str, plan: dict, tag: str | None) -> pd.DataFrame:
                 prob.append(f"학습 상대 {args.get('opponents')} ≠ {plan['train_opponents']}")
             if bool(args.get("sixdof")) != (env == "6dof"):
                 prob.append("환경(3DOF/6DOF)이 다름")
+            want_cone = plan.get("gun_cone_6dof") if env == "6dof" else None
+            if (args.get("cone") or None) != (want_cone or None):
+                prob.append(f"기총 원추 {args.get('cone')} ≠ {want_cone}")
             if int(args.get("seed", -1)) != seed:
                 prob.append(f"시드 {args.get('seed')} ≠ 파일 이름 {seed}")
             r["resumes"] = len(meta.get("resumes", [])) - 1 if meta.get("resumes") else 0

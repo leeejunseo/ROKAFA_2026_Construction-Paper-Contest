@@ -186,6 +186,8 @@ def main():
     ap.add_argument("--bt", default=None, help="기준선 행동트리 이름(v1–v3, btm, btmplus, school). 주면 --bt-version 대신 씀")
     ap.add_argument("--opponents", nargs="*", default=["1", "2"], help="학습 상대 행동트리(정수 또는 이름)")
     ap.add_argument("--sixdof", action="store_true", help="6자유도(JSBSim F-16)에서 학습")
+    ap.add_argument("--cone", nargs=2, type=float, default=None, metavar=("START", "END"),
+                    help="기총 명중 원추 반각 [deg] (기본: 3 → 10)")
     ap.add_argument("--roll-rate-max", type=float, default=None, help="3자유도 롤 속도 상한 [deg/s]")
     ap.add_argument("--resume", action="store_true", help="state_<tag> 가 있으면 거기서 이어서 학습")
     ap.add_argument("--stop-after", type=int, default=None, help="이번 실행에서 이 세대 수만 돌고 멈춤(시험용)")
@@ -199,7 +201,7 @@ def main():
           opponents=tuple(a.opponents),
           outdir=outdir, checkpoint_every=a.checkpoint_every, tag=a.tag or f"seed{a.seed}",
           fitness=a.fitness, beta=a.beta, bt_version=a.bt or a.bt_version, rl_ckpt=a.rl_ckpt,
-          gate_hidden=tuple(a.gate_hidden), env_opts=env_opts(a.sixdof, a.roll_rate_max),
+          gate_hidden=tuple(a.gate_hidden), env_opts=env_opts(a.sixdof, a.roll_rate_max, a.cone),
           resume=a.resume, stop_after=a.stop_after, meta_args=dict(script="train_es_hybrid", **vars(a)),
           accept_fresh=a.accept_fresh, accept_episodes=a.accept_episodes)
 

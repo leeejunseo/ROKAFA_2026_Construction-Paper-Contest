@@ -148,6 +148,8 @@ def main():
     ap.add_argument("--out", default="results/es/bc_init.npz")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--sixdof", action="store_true", help="6자유도 교전에서 수집·평가")
+    ap.add_argument("--cone", nargs=2, type=float, default=None, metavar=("START", "END"),
+                    help="기총 명중 원추 반각 [deg] (기본: 3 → 10)")
     ap.add_argument("--roll-rate-max", type=float, default=None, help="3자유도 롤 속도 상한 [deg/s]")
     ap.add_argument("--workers", type=int, default=1, help="수집 병렬 작업자 수")
     ap.add_argument("--save-data", default=None, help="수집한 (관측, 행동)을 이 npz 로 저장")
@@ -157,7 +159,7 @@ def main():
     sys.stdout.reconfigure(encoding="utf-8")
     num = lambda v: int(v) if str(v).isdigit() else v          # 정수 이름은 기존과 같은 난수 소비
     teacher, opps = num(a.teacher), tuple(num(o) for o in a.opponents)
-    opts = _env_opts(a.sixdof, a.roll_rate_max)
+    opts = _env_opts(a.sixdof, a.roll_rate_max, a.cone)
     t0 = time.time()
     X, Y = collect(teacher, opps, n_episodes=a.episodes, rng_seed=a.seed, env_opts=opts, workers=a.workers)
     print(f"로그 수집: {X.shape[0]:,} 샘플 ({time.time()-t0:.0f}s)", flush=True)

@@ -1,0 +1,170 @@
+{
+ "s3": {
+  "n_total": 400,
+  "n_ok": 400,
+  "n_err": 0,
+  "collision": 0.015,
+  "crash_self": 0.0,
+  "viol_deck": 0.0,
+  "viol_over_g": 0.0,
+  "viol_sep": 0.006389111015623659,
+  "trim_ok": 1.0,
+  "seconds": 9.026486158370972,
+  "score_v2": 0.4775,
+  "score_v2_ci": [
+   0.43,
+   0.525
+  ],
+  "outcomes_v2": {
+   "timeout:무": 96,
+   "timeout:승": 44,
+   "timeout:패": 29,
+   "gun_kill:패": 27,
+   "collision:무": 1,
+   "gun_kill:승": 3
+  },
+  "score_v3": 0.6775,
+  "score_v3_ci": [
+   0.6225,
+   0.735
+  ],
+  "outcomes_v3": {
+   "collision:무": 5,
+   "timeout:무": 40,
+   "timeout:승": 101,
+   "gun_kill:승": 12,
+   "timeout:패": 14,
+   "gun_kill:패": 28
+  },
+  "node_freq": {
+   "rate_turn_lead_or_two_circle": 0.7359601909210928,
+   "high_g_pull": 0.12525734649224038,
+   "lead_pursuit_gun": 0.04184477044231284,
+   "break_turn_into_threat": 0.03950903366969174,
+   "turn_circle_entry": 0.0295798443457629,
+   "lateral_offset": 0.014060581441509642,
+   "recover_lift_vector_up": 0.013788232687389792
+  }
+ },
+ "s6": {
+  "n_total": 400,
+  "n_ok": 400,
+  "n_err": 0,
+  "collision": 0.04,
+  "crash_self": 0.0,
+  "viol_deck": 0.0,
+  "viol_over_g": 0.0,
+  "viol_sep": 0.0024872562679248682,
+  "trim_ok": 1.0,
+  "seconds": 168.95061492919922,
+  "score_v2": 0.4625,
+  "score_v2_ci": [
+   0.4275,
+   0.4975
+  ],
+  "outcomes_v2": {
+   "timeout:패": 34,
+   "timeout:무": 140,
+   "collision:무": 7,
+   "timeout:승": 19
+  },
+  "score_v3": 0.5425,
+  "score_v3_ci": [
+   0.5,
+   0.585
+  ],
+  "outcomes_v3": {
+   "timeout:패": 30,
+   "timeout:무": 114,
+   "collision:무": 9,
+   "timeout:승": 46,
+   "gun_kill:승": 1
+  },
+  "node_freq": {
+   "rate_turn_lead_or_two_circle": 0.7459324964747585,
+   "turn_circle_entry": 0.15705975446207185,
+   "recover_lift_vector_up": 0.0320441226568463,
+   "high_g_pull": 0.028917761611736145,
+   "break_turn_into_threat": 0.024864272808420906,
+   "lateral_offset": 0.006166477647596583,
+   "lead_pursuit_gun": 0.005015114338569809
+  }
+ },
+ "bc": {
+  "n_samples": 161154,
+  "r2_per_channel": [
+   0.9666471664018502,
+   0.9408208672666195,
+   0.7051149525095313
+  ],
+  "r2_weighted": 0.9089217501038941,
+  "learner": "sklearn MLPRegressor(tanh 32-32, 602회 반복) — torch 없음"
+ },
+ "sur3": {
+  "d_star": 17.0,
+  "d_star_multi": {
+   "0.9": 5.0,
+   "0.95": 17.0,
+   "0.99": 17.0
+  },
+  "f4": 0.8844316980020888,
+  "n_samples": 31528
+ },
+ "sur6": {
+  "d_star": 10.0,
+  "d_star_multi": {
+   "0.9": 4.0,
+   "0.95": 10.0,
+   "0.99": 17.0
+  },
+  "f4": 0.9108261818780314,
+  "n_samples": 34990
+ },
+ "verdict": [
+  [
+   "E1 3자유도 400교전 오류 없음",
+   "400/400",
+   true
+  ],
+  [
+   "E2 3자유도 공중충돌 ≤ 10%",
+   "0.015",
+   true
+  ],
+  [
+   "E3 3자유도 지면충돌 ≤ 5%",
+   "0.000",
+   true
+  ],
+  [
+   "E4 3자유도 BT-v2 상대 점수 ≥ 0.45",
+   "0.477 [0.430, 0.525]",
+   true
+  ],
+  [
+   "E1 6자유도 400교전 오류 없음",
+   "400/400",
+   true
+  ],
+  [
+   "E2 6자유도 공중충돌 ≤ 10%",
+   "0.040",
+   true
+  ],
+  [
+   "E3 6자유도 지면충돌 ≤ 5%",
+   "0.000",
+   true
+  ],
+  [
+   "E4 6자유도 BT-v2 상대 점수 ≥ 0.45",
+   "0.463 [0.427, 0.497]",
+   true
+  ],
+  [
+   "E5 행동복제 R² ≥ 0.9",
+   "0.909 (채널별 0.967, 0.941, 0.705)",
+   true
+  ]
+ ]
+}

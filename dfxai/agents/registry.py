@@ -7,6 +7,8 @@
     v1, v2, v3 : 기존 행동트리 3종 (agents/bt.py). 정수 1, 2, 3 도 같은 뜻
     btm        : 교범 기반 새 기준선 BT-M (손형래, agents/bt_manual.py — 형식 맞춤은 bt_manual_adapter.py)
     btmplus    : BT-M+ (상세판, 같은 파일)
+    bte        : BT-E 교범 기반 에너지·수직형 상대 (손형래, agents/bt_energy.py — 형식은 bt_opponents_adapter.py)
+    btr        : BT-R 교범 기반 반경 싸움형 상대 (손형래, agents/bt_radius.py, 평가 전용)
     school     : 교내대회 BT 이식본 (박윤준, agents/bt_school.py 의 SchoolBTPolicy)
 
 새 BT 가 지켜야 할 것 (C안_실행명세서 H1·H3, 예시는 agents/bt_template.py)
@@ -26,11 +28,13 @@ from .base import Policy
 _EXTERNAL = {
     "btm": ("dfxai.agents.bt_manual_adapter", "BTMPolicy"),
     "btmplus": ("dfxai.agents.bt_manual_adapter", "BTMPlusPolicy"),
+    "bte": ("dfxai.agents.bt_opponents_adapter", "BTEPolicy"),
+    "btr": ("dfxai.agents.bt_opponents_adapter", "BTRPolicy"),
     "school": ("dfxai.agents.bt_school", "SchoolBTPolicy"),
     "tmpl": ("dfxai.agents.bt_template", "TemplateBTPolicy"),     # 형식 예시·배선 시험용
 }
-_LABEL = {"btm": "BT-M", "btmplus": "BT-M+", "school": "BT-school", "tmpl": "BT-tmpl"}
-_ALIAS = {"M": "btm", "M+": "btmplus"}           # 'BT-M' 'BT-M+' 같은 표 이름도 받는다
+_LABEL = {"btm": "BT-M", "btmplus": "BT-M+", "bte": "BT-E", "btr": "BT-R", "school": "BT-school", "tmpl": "BT-tmpl"}
+_ALIAS = {"M": "btm", "M+": "btmplus", "E": "bte", "R": "btr"}           # 'BT-M' 'BT-M+' 같은 표 이름도 받는다
 
 
 def canon(name) -> str:
@@ -73,7 +77,7 @@ def make_bt(name, theta=None) -> Policy:
     if c in _EXTERNAL:
         cls = _external_class(c)
         return cls(theta=theta) if theta is not None else cls()
-    raise ValueError(f"모르는 행동트리 이름: {name!r} (v1, v2, v3, btm, btmplus, school)")
+    raise ValueError(f"모르는 행동트리 이름: {name!r} (v1, v2, v3, btm, btmplus, bte, btr, school)")
 
 
 def param_spec(name) -> list:

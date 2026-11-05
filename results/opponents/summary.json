@@ -1,0 +1,426 @@
+{
+ "s3": {
+  "pairs": {
+   "BT-M vs BT-E": {
+    "n": 200,
+    "errors": 0,
+    "score_x": 0.585,
+    "ci": [
+     0.5325,
+     0.635
+    ],
+    "collision": 0.0,
+    "kill": 0.07,
+    "timeout": 0.93,
+    "contact": 0.555,
+    "crash": {
+     "BT-M": 0.0,
+     "BT-E": 0.0
+    }
+   },
+   "BT-M vs BT-R": {
+    "n": 200,
+    "errors": 0,
+    "score_x": 0.45,
+    "ci": [
+     0.395,
+     0.505
+    ],
+    "collision": 0.0,
+    "kill": 0.14,
+    "timeout": 0.86,
+    "contact": 0.66,
+    "crash": {
+     "BT-M": 0.0,
+     "BT-R": 0.0
+    }
+   },
+   "BT-M vs BT-M+": {
+    "n": 200,
+    "errors": 0,
+    "score_x": 0.5,
+    "ci": [
+     0.45,
+     0.5525
+    ],
+    "collision": 0.005,
+    "kill": 0.08,
+    "timeout": 0.915,
+    "contact": 0.54,
+    "crash": {
+     "BT-M": 0.0,
+     "BT-M+": 0.0
+    }
+   },
+   "BT-E vs BT-R": {
+    "n": 200,
+    "errors": 0,
+    "score_x": 0.4275,
+    "ci": [
+     0.37,
+     0.4875
+    ],
+    "collision": 0.0,
+    "kill": 0.215,
+    "timeout": 0.785,
+    "contact": 0.82,
+    "crash": {
+     "BT-E": 0.0,
+     "BT-R": 0.0
+    }
+   },
+   "BT-E vs BT-M+": {
+    "n": 200,
+    "errors": 0,
+    "score_x": 0.2725,
+    "ci": [
+     0.22,
+     0.3275
+    ],
+    "collision": 0.0,
+    "kill": 0.06,
+    "timeout": 0.94,
+    "contact": 0.835,
+    "crash": {
+     "BT-E": 0.0,
+     "BT-M+": 0.0
+    }
+   },
+   "BT-R vs BT-M+": {
+    "n": 200,
+    "errors": 0,
+    "score_x": 0.545,
+    "ci": [
+     0.4875,
+     0.6025
+    ],
+    "collision": 0.005,
+    "kill": 0.16,
+    "timeout": 0.835,
+    "contact": 0.67,
+    "crash": {
+     "BT-R": 0.0,
+     "BT-M+": 0.0
+    }
+   }
+  },
+  "policy": {
+   "BT-M": {
+    "nodes_count": 22,
+    "deck": 0.0,
+    "over_g": 0.0,
+    "eas": 167.24260342618564,
+    "load": 6.102832329135702,
+    "alt": 2818.325415055595,
+    "node_freq": {
+     "rate_turn_lead_or_two_circle": 0.7824231109708747,
+     "high_g_pull": 0.08074114976378918,
+     "turn_circle_entry": 0.05409621975055437,
+     "lateral_offset": 0.029250991150494187,
+     "break_turn_into_threat": 0.02143865092512249,
+     "recover_lift_vector_up": 0.020345975067123604
+    }
+   },
+   "BT-E": {
+    "nodes_count": 25,
+    "deck": 0.0,
+    "over_g": 0.0,
+    "eas": 179.55370670069988,
+    "load": 6.201135407570673,
+    "alt": 2721.619506101325,
+    "node_freq": {
+     "sustained_pursuit": 0.6781005635402559,
+     "nose_low_lead": 0.12277022993024915,
+     "snapshot_lead": 0.0957901941083104,
+     "unload_accelerate": 0.02673248583868478,
+     "recover_lift_vector_up": 0.025063707716278597,
+     "break_turn_into_threat": 0.024524922458608187
+    }
+   },
+   "BT-R": {
+    "nodes_count": 15,
+    "deck": 0.0,
+    "over_g": 0.0,
+    "eas": 138.52744526706581,
+    "load": 5.628819922783253,
+    "alt": 3036.2532569012333,
+    "node_freq": {
+     "min_radius_turn": 0.8081381130229736,
+     "high_aspect_lead": 0.11672760539481351,
+     "lateral_offset": 0.03272877686763867,
+     "break_turn_into_threat": 0.03248421681908897,
+     "recover_lift_vector_up": 0.009921287895485301
+    }
+   },
+   "BT-M+": {
+    "nodes_count": 32,
+    "deck": 0.0,
+    "over_g": 0.0,
+    "eas": 165.20530886409324,
+    "load": 6.0578117126856705,
+    "alt": 2775.7145153381875,
+    "node_freq": {
+     "rate_turn_lead_or_two_circle": 0.7642889489445621,
+     "turn_circle_entry": 0.07548316412241618,
+     "high_g_pull": 0.05963041414067636,
+     "lateral_offset": 0.029870717989920387,
+     "break_turn_into_threat": 0.022476079176101088,
+     "recover_lift_vector_up": 0.02057702140092031
+    }
+   }
+  }
+ },
+ "s6": {
+  "pairs": {
+   "BT-M vs BT-E": {
+    "n": 200,
+    "errors": 0,
+    "score_x": 0.6475,
+    "ci": [
+     0.6075,
+     0.6875
+    ],
+    "collision": 0.03,
+    "kill": 0.095,
+    "timeout": 0.875,
+    "contact": 0.44,
+    "crash": {
+     "BT-M": 0.0,
+     "BT-E": 0.0
+    }
+   },
+   "BT-M vs BT-R": {
+    "n": 200,
+    "errors": 0,
+    "score_x": 0.4875,
+    "ci": [
+     0.4375,
+     0.54
+    ],
+    "collision": 0.02,
+    "kill": 0.02,
+    "timeout": 0.96,
+    "contact": 0.535,
+    "crash": {
+     "BT-M": 0.0,
+     "BT-R": 0.0
+    }
+   },
+   "BT-M vs BT-M+": {
+    "n": 200,
+    "errors": 0,
+    "score_x": 0.405,
+    "ci": [
+     0.37,
+     0.4425
+    ],
+    "collision": 0.075,
+    "kill": 0.115,
+    "timeout": 0.81,
+    "contact": 0.405,
+    "crash": {
+     "BT-M": 0.0,
+     "BT-M+": 0.0
+    }
+   },
+   "BT-E vs BT-R": {
+    "n": 200,
+    "errors": 0,
+    "score_x": 0.505,
+    "ci": [
+     0.455,
+     0.5575
+    ],
+    "collision": 0.04,
+    "kill": 0.015,
+    "timeout": 0.945,
+    "contact": 0.65,
+    "crash": {
+     "BT-E": 0.0,
+     "BT-R": 0.0
+    }
+   },
+   "BT-E vs BT-M+": {
+    "n": 200,
+    "errors": 0,
+    "score_x": 0.13,
+    "ci": [
+     0.0975,
+     0.165
+    ],
+    "collision": 0.01,
+    "kill": 0.13,
+    "timeout": 0.86,
+    "contact": 0.79,
+    "crash": {
+     "BT-E": 0.0,
+     "BT-M+": 0.0
+    }
+   },
+   "BT-R vs BT-M+": {
+    "n": 200,
+    "errors": 0,
+    "score_x": 0.2675,
+    "ci": [
+     0.2275,
+     0.3125
+    ],
+    "collision": 0.075,
+    "kill": 0.115,
+    "timeout": 0.81,
+    "contact": 0.64,
+    "crash": {
+     "BT-R": 0.0,
+     "BT-M+": 0.0
+    }
+   }
+  },
+  "policy": {
+   "BT-M": {
+    "nodes_count": 22,
+    "deck": 0.0,
+    "over_g": 0.0,
+    "eas": 239.04481902742899,
+    "load": 6.861232730034158,
+    "alt": 2543.777750764639,
+    "node_freq": {
+     "rate_turn_lead_or_two_circle": 0.7982169836345393,
+     "turn_circle_entry": 0.11851119286793454,
+     "recover_lift_vector_up": 0.03407164358125642,
+     "high_g_pull": 0.020785519046905093,
+     "lateral_offset": 0.012602788702180907,
+     "break_turn_into_threat": 0.01243267556252667
+    }
+   },
+   "BT-E": {
+    "nodes_count": 25,
+    "deck": 0.0,
+    "over_g": 0.0,
+    "eas": 242.75131410598706,
+    "load": 6.669558248831779,
+    "alt": 2420.2013901896016,
+    "node_freq": {
+     "sustained_pursuit": 0.7739910390538881,
+     "nose_low_lead": 0.12682330757464844,
+     "recover_lift_vector_up": 0.03563585403854973,
+     "snapshot_lead": 0.03406925506794767,
+     "break_turn_into_threat": 0.013956972647181973,
+     "lateral_offset": 0.00816625317948382
+    }
+   },
+   "BT-R": {
+    "nodes_count": 15,
+    "deck": 0.0,
+    "over_g": 0.0,
+    "eas": 182.06542967714987,
+    "load": 5.149430623845594,
+    "alt": 2681.975785837547,
+    "node_freq": {
+     "min_radius_turn": 0.8872065878983172,
+     "high_aspect_lead": 0.04457429287504475,
+     "recover_lift_vector_up": 0.028376655925528106,
+     "break_turn_into_threat": 0.026128177586824203,
+     "lateral_offset": 0.013714285714285714
+    }
+   },
+   "BT-M+": {
+    "nodes_count": 32,
+    "deck": 0.0,
+    "over_g": 0.0,
+    "eas": 224.26186708618252,
+    "load": 6.5170181922792905,
+    "alt": 2544.0651158005603,
+    "node_freq": {
+     "rate_turn_lead_or_two_circle": 0.7382135575942915,
+     "turn_circle_entry": 0.17577726809378186,
+     "recover_lift_vector_up": 0.028003660457788897,
+     "high_g_pull": 0.019214507459920305,
+     "lateral_offset": 0.018160388286535076,
+     "break_turn_into_threat": 0.007410689463441757
+    }
+   }
+  }
+ },
+ "verdict": [
+  [
+   "O1 3자유도 BT-E 오류 없음 (3쌍 × 400교전)",
+   "0회",
+   true
+  ],
+  [
+   "O2 3자유도 BT-E 공중충돌 ≤ 10% (짝별 최대)",
+   "0.000",
+   true
+  ],
+  [
+   "O3 3자유도 BT-E 자기 추락 ≤ 5% (짝별 최대)",
+   "0.000",
+   true
+  ],
+  [
+   "O4 3자유도 BT-E 의 BT-M 상대 점수 0.35~0.65",
+   "0.415",
+   true
+  ],
+  [
+   "O1 3자유도 BT-R 오류 없음 (3쌍 × 400교전)",
+   "0회",
+   true
+  ],
+  [
+   "O2 3자유도 BT-R 공중충돌 ≤ 10% (짝별 최대)",
+   "0.005",
+   true
+  ],
+  [
+   "O3 3자유도 BT-R 자기 추락 ≤ 5% (짝별 최대)",
+   "0.000",
+   true
+  ],
+  [
+   "O4 3자유도 BT-R 의 BT-M 상대 점수 0.35~0.65",
+   "0.550",
+   true
+  ],
+  [
+   "O1 6자유도 BT-E 오류 없음 (3쌍 × 400교전)",
+   "0회",
+   true
+  ],
+  [
+   "O2 6자유도 BT-E 공중충돌 ≤ 10% (짝별 최대)",
+   "0.040",
+   true
+  ],
+  [
+   "O3 6자유도 BT-E 자기 추락 ≤ 5% (짝별 최대)",
+   "0.000",
+   true
+  ],
+  [
+   "O4 6자유도 BT-E 의 BT-M 상대 점수 0.35~0.65",
+   "0.353",
+   true
+  ],
+  [
+   "O1 6자유도 BT-R 오류 없음 (3쌍 × 400교전)",
+   "0회",
+   true
+  ],
+  [
+   "O2 6자유도 BT-R 공중충돌 ≤ 10% (짝별 최대)",
+   "0.075",
+   true
+  ],
+  [
+   "O3 6자유도 BT-R 자기 추락 ≤ 5% (짝별 최대)",
+   "0.000",
+   true
+  ],
+  [
+   "O4 6자유도 BT-R 의 BT-M 상대 점수 0.35~0.65",
+   "0.512",
+   true
+  ]
+ ]
+}

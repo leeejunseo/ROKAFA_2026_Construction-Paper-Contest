@@ -1,27 +1,32 @@
 {
   "teacher": "BT-M",
+  "opponents": [
+    "BT-M",
+    "BT-E"
+  ],
+  "env_opts": {},
   "sixdof": false,
   "episodes": 300,
-  "samples": 161973,
+  "samples": 176841,
   "r2": {
-    "weighted": 0.907464644591971,
+    "weighted": 0.8774379133205996,
     "per_channel": [
-      0.9566317217376593,
-      0.9722032425716917,
-      0.6864551040187215
+      0.9585970794947094,
+      0.8759076314416676,
+      0.7877373883639469
     ],
-    "n_train": 145776,
-    "n_val": 16197
+    "n_train": 159157,
+    "n_val": 17684
   },
   "eval": {
-    "BT-v2": {
+    "BT-E": {
       "score": 0.5375,
-      "wez": 0.5349999999999999,
+      "wez": 0.6262499999999994,
       "outcomes": {
-        "timeout": 38,
-        "gun_kill": 2
+        "timeout": 34,
+        "gun_kill": 6
       }
     }
   },
-  "seconds": 58
+  "seconds": 587
 }

@@ -1,0 +1,16 @@
+
+
+
+
+
+
+
+
+cur  {}                                            3DOF 접촉 0.53 격추 0.20 충돌 0.01 BT-M점수 0.458 WEZ초 BT-M 0.31 / BT-v2 0.83
+cur  {}                                            6DOF 접촉 0.37 격추 0.00 충돌 0.03 BT-M점수 0.438 WEZ초 BT-M 0.08 / BT-v2 0.20
+cur  {'cone_deg_start': 6.0, 'cone_deg_end': 12.0} 3DOF 접촉 0.68 격추 0.23 충돌 0.01 BT-M점수 0.483 WEZ초 BT-M 0.60 / BT-v2 0.95
+cur  {'cone_deg_start': 6.0, 'cone_deg_end': 12.0} 6DOF 접촉 0.53 격추 0.00 충돌 0.03 BT-M점수 0.421 WEZ초 BT-M 0.23 / BT-v2 0.45
+lead {}                                            3DOF 접촉 0.42 격추 0.03 충돌 0.01 BT-M점수 0.442 WEZ초 BT-M 0.17 / BT-v2 0.30
+lead {}                                            6DOF 접촉 0.26 격추 0.00 충돌 0.03 BT-M점수 0.475 WEZ초 BT-M 0.05 / BT-v2 0.08
+lead {'cone_deg_start': 2.0, 'cone_deg_end': 6.0}  3DOF 접촉 0.19 격추 0.00 충돌 0.01 BT-M점수 0.529 WEZ초 BT-M 0.12 / BT-v2 0.01
+lead {'cone_deg_start': 2.0, 'cone_deg_end': 6.0}  6DOF 접촉 0.15 격추 0.00 충돌 0.03 BT-M점수 0.471 WEZ초 BT-M 0.02 / BT-v2 0.04

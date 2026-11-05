@@ -1,9 +1,10 @@
 {
-  "_설명": "C안 학습 설정. 배포 태그에 이 파일이 함께 고정된다. 팀 결정(D1·D5·D7)이 바뀌면 이 파일만 고치고 새 태그를 단다.",
+  "_설명": "C안 학습 설정. 배포 태그에 이 파일이 함께 고정된다. 팀 결정(D1·D5·D7)이 바뀌면 이 파일만 고치고 새 태그를 단다. gun_cone_6dof 는 6자유도 기총 원추 [시작, 끝] 반각, null 이면 3→10 (3자유도는 언제나 3→10).",
   "tag": null,
   "baseline": "btm",
-  "train_opponents": ["btm", "v2"],
-  "heldout_opponents": ["v1", "v3", "school"],
+  "train_opponents": ["btm", "bte"],
+  "heldout_opponents": ["btr", "btmplus"],
+  "gun_cone_6dof": [6.0, 12.0],
   "seeds": 20,
   "generations": 300,
   "keep_checkpoints": [200, 300],

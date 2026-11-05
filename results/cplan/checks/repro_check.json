@@ -1,7 +1,7 @@
 {
   "git": {
-    "commit": "560959e440495771f0cf8512ea457b5a0ed7a00d",
-    "describe": "560959e-dirty",
+    "commit": "ff4c15fef84516c9026fe239c61024153ac53ccc",
+    "describe": "ff4c15f-dirty",
     "code_dirty": true
   },
   "results": [
@@ -32,6 +32,11 @@
     },
     {
       "test": "이어하기 (3자유도 20세대 연속 = 10 + 10)",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "test": "이어하기 (6자유도 축소판 4세대 = 2 + 2)",
       "passed": true,
       "detail": ""
     }

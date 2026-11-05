@@ -65,6 +65,8 @@ def command(plan: dict, kind: str, seed: int, env: str, workers: int, generation
         cmd += ["--rl-ckpt", os.path.join(outdir(plan, "init", env), f"ckpt_seed{seed}_gen{plan['generations']:05d}.npz")]
     if env == "6dof":
         cmd += ["--sixdof"]
+        if plan.get("gun_cone_6dof"):
+            cmd += ["--cone", *map(str, plan["gun_cone_6dof"])]
     elif plan.get("roll_rate_max_3dof"):
         cmd += ["--roll-rate-max", str(plan["roll_rate_max_3dof"])]
     if plan.get("accept_fresh"):

@@ -46,6 +46,7 @@ def make_env(opts: dict | None = None) -> DogfightEnv:
       cl_max_scale  최대 양력계수 배율       thrust_scale  최대추력 배율
       lag_scale     뱅크·하중·스로틀 지연 시상수 배율
       roll_rate_max_deg  롤 속도 상한 [deg/s]
+    cone_deg [시작, 끝] 은 기총 명중 원추 반각 [deg]. 교전 규칙이라 3자유도·6자유도 모두에 쓸 수 있다(C안은 6자유도만).
     """
     opts = opts or {}
     ec = EngagementConfig()
@@ -53,6 +54,8 @@ def make_env(opts: dict | None = None) -> DogfightEnv:
         ec.episode_time = float(opts["episode_time"])
     if "timeout_rule" in opts:
         ec.timeout_rule = str(opts["timeout_rule"])
+    if "cone_deg" in opts:
+        ec.cone_deg_start, ec.cone_deg_end = (float(d) for d in opts["cone_deg"])
     ac = AircraftConfig()
     if "cl_max_scale" in opts:
         ac.cl_max *= float(opts["cl_max_scale"])
@@ -261,6 +264,8 @@ def main():
     ap.add_argument("--thrust-scale", type=float, default=None, help="최대추력 배율 (R9)")
     ap.add_argument("--lag-scale", type=float, default=None, help="지령 지연 시상수 배율 (R9)")
     ap.add_argument("--roll-rate-max", type=float, default=None, help="롤 속도 상한 [deg/s] (R9)")
+    ap.add_argument("--cone", nargs=2, type=float, default=None, metavar=("START", "END"),
+                    help="기총 명중 원추 반각 [deg] (기본: 3 → 10)")
     ap.add_argument("--sixdof", action="store_true",
                     help="6자유도(JSBSim F-16) 평가 전용 교차검증 환경 (dfxai/sixdof)")
     a = ap.parse_args()
@@ -301,6 +306,8 @@ def main():
                      ("lag_scale", a.lag_scale), ("roll_rate_max_deg", a.roll_rate_max)):
         if val is not None:
             env_opts[key] = val
+    if a.cone:
+        env_opts["cone_deg"] = list(a.cone)
     if a.sixdof:
         env_opts["sixdof"] = True
     opps = tuple(int(o) if str(o).isdigit() else o for o in a.opponents)
